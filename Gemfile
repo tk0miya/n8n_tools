@@ -5,6 +5,8 @@ source "https://rubygems.org"
 # gem "rails"
 
 group :development do
+  gem "rake"
+  gem "rspec"
   gem "rbs"
   gem "rbs-inline"
   gem "steep"
