@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "bundler/gem_tasks"
 require "rspec/core/rake_task"
 require "rubocop/rake_task"
 
@@ -18,6 +17,7 @@ namespace :rbs do
   end
 end
 
+desc "Run Steep type check"
 task :steep do
   sh "bundle exec steep check"
 end
