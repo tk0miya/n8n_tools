@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:index.rubygems.org)",
+      "WebFetch(domain:rubygems.org)"
+    ]
+  }
+}
