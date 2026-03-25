@@ -6,12 +6,12 @@ source "https://rubygems.org"
 
 group :development do
   gem "rake"
-  gem "rspec"
   gem "rbs"
   gem "rbs-inline"
-  gem "steep"
+  gem "rspec"
   gem "rubocop"
+  gem "rubocop-numbered-params"
   gem "rubocop-rake"
   gem "rubocop-rspec"
-  gem "rubocop-numbered-params"
+  gem "steep"
 end

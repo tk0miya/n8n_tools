@@ -17,6 +17,7 @@ namespace :rbs do
   end
 end
 
+desc "Run Steep type check"
 task :steep do
   sh "bundle exec steep check"
 end
