@@ -42,6 +42,10 @@ RSpec/NamedSubject:
 RSpec/NestedGroups:
   Max: 5
 
+RSpec/SpecFilePathFormat:
+  CustomTransform:
+    GitHub: github
+
 # Style
 Style/Documentation:
   Enabled: false

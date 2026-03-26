@@ -4,6 +4,8 @@ source "https://rubygems.org"
 
 # gem "rails"
 
+gem "octokit"
+
 group :development do
   gem "rake"
   gem "rbs"

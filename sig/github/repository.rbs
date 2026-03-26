@@ -1,0 +1,16 @@
+# Generated from lib/github/repository.rb with RBS::Inline
+
+module GitHub
+  class Repository < Data
+    attr_reader name(): String
+
+    attr_reader updated_at(): Time
+
+    def self.new: (String name, Time updated_at) -> instance
+                | (name: String, updated_at: Time) -> instance
+
+    def self.members: () -> [ :name, :updated_at ]
+
+    def members: () -> [ :name, :updated_at ]
+  end
+end

@@ -1,0 +1,19 @@
+interface _OctokitUser
+  def login: () -> String
+end
+
+interface _OctokitRepo
+  def name: () -> String
+  def updated_at: () -> Time
+end
+
+module Octokit
+  class Client
+    def initialize: (?access_token: String) -> void
+
+    def user: () -> _OctokitUser
+
+    def repos: (String, ?type: String) -> Array[_OctokitRepo]
+
+  end
+end

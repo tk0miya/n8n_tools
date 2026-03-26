@@ -1,0 +1,12 @@
+# Generated from lib/github/repository_fetcher.rb with RBS::Inline
+
+module GitHub
+  class RepositoryFetcher
+    @client: Octokit::Client
+
+    # @rbs client: Octokit::Client
+    def initialize: (client: Octokit::Client) -> void
+
+    def repositories: () -> Array[GitHub::Repository]
+  end
+end
