@@ -6,6 +6,10 @@ tool_name=$(echo "$input" | jq -r '.tool_name')
 
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
+if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
+  eval "$(rbenv init - bash)"
+fi
+
 # Handle Edit or Write tools
 if [[ "$tool_name" == "Edit" || "$tool_name" == "Write" ]]; then
     file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""')
