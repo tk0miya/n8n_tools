@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_ENV_FILE": "$CLAUDE_PROJECT_DIR/.claude/env.sh"
+  },
   "hooks": {
     "PreToolUse": [
       {
