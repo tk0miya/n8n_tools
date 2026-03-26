@@ -12,6 +12,7 @@ group :development do
   gem "rubocop"
   gem "rubocop-numbered-params"
   gem "rubocop-rake"
+  gem "rubocop-rbs_inline"
   gem "rubocop-rspec"
   gem "steep"
 end

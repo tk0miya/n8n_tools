@@ -12,6 +12,10 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
+if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
+  eval "$(rbenv init - bash)"
+fi
+
 echo "Running pre-commit checks..." >&2
 
 # Generate RBS and run all checks
