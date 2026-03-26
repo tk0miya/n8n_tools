@@ -99,6 +99,10 @@ GEM
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
       rubocop (>= 1.72.1)
+    rubocop-rbs_inline (1.5.3)
+      lint_roller (~> 1.1)
+      rbs-inline
+      rubocop (>= 1.72.1, < 2.0)
     rubocop-rspec (3.9.0)
       lint_roller (~> 1.1)
       rubocop (~> 1.81)
@@ -155,6 +159,7 @@ DEPENDENCIES
   rubocop
   rubocop-numbered-params
   rubocop-rake
+  rubocop-rbs_inline
   rubocop-rspec
   steep
 
@@ -208,6 +213,7 @@ CHECKSUMS
   rubocop-ast (1.49.1) sha256=4412f3ee70f6fe4546cc489548e0f6fcf76cafcfa80fa03af67098ffed755035
   rubocop-numbered-params (1.0.0) sha256=6271a39c4751fb3e0b79b0aab26c407f2e4927aeef80c74622a6eaa373d7828a
   rubocop-rake (0.7.1) sha256=3797f2b6810c3e9df7376c26d5f44f3475eda59eb1adc38e6f62ecf027cbae4d
+  rubocop-rbs_inline (1.5.3) sha256=6337a0a23adb16404e02d7680e8ac3153b93f30187d78a57e5152d00980a256e
   rubocop-rspec (3.9.0) sha256=8fa70a3619408237d789aeecfb9beef40576acc855173e60939d63332fdb55e2
   ruby-progressbar (1.13.0) sha256=80fc9c47a9b640d6834e0dc7b3c94c9df37f08cb072b7761e4a71e22cff29b33
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
