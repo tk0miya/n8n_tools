@@ -14,7 +14,8 @@ module GitHub
     def repositories #: Array[GitHub::Repository]
       client.repos(login, type: "owner").map do |repo|
         Repository.new(name: repo.name, updated_at: repo.updated_at,
-                       ci_failing: ci_failing?(repo.name, repo.default_branch))
+                       ci_failing: ci_failing?(repo.name, repo.default_branch),
+                       pull_requests_count: pull_requests_count(repo.name))
       end
     end
 
@@ -22,6 +23,11 @@ module GitHub
 
     attr_reader :client #: Octokit::Client
     attr_reader :login  #: String
+
+    # @rbs repo_name: String
+    def pull_requests_count(repo_name) #: Integer
+      client.pull_requests("#{login}/#{repo_name}", state: "open").length
+    end
 
     # @rbs repo_name: String
     # @rbs branch: String

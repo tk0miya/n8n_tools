@@ -14,6 +14,9 @@ module GitHub
     attr_reader login: String
 
     # @rbs repo_name: String
+    def pull_requests_count: (String repo_name) -> Integer
+
+    # @rbs repo_name: String
     # @rbs branch: String
     def ci_failing?: (String repo_name, String branch) -> bool
   end
