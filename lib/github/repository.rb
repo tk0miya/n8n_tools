@@ -2,7 +2,8 @@
 
 module GitHub
   Repository = Data.define(
-    :name,       #: String
-    :updated_at  #: Time
+    :name,        #: String
+    :updated_at,  #: Time
+    :ci_failing   #: bool
   )
 end

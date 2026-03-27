@@ -2,11 +2,19 @@
 
 module GitHub
   class RepositoryFetcher
-    @client: Octokit::Client
-
     # @rbs client: Octokit::Client
     def initialize: (client: Octokit::Client) -> void
 
     def repositories: () -> Array[GitHub::Repository]
+
+    private
+
+    attr_reader client: Octokit::Client
+
+    attr_reader login: String
+
+    # @rbs repo_name: String
+    # @rbs branch: String
+    def ci_failing?: (String repo_name, String branch) -> bool
   end
 end
