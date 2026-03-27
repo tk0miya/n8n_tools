@@ -1,0 +1,7 @@
+# Generated from lib/ghscan/main.rb with RBS::Inline
+
+module Ghscan
+  class Main
+    def run: () -> void
+  end
+end
