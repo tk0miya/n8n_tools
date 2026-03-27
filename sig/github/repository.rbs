@@ -6,11 +6,13 @@ module GitHub
 
     attr_reader updated_at(): Time
 
-    def self.new: (String name, Time updated_at) -> instance
-                | (name: String, updated_at: Time) -> instance
+    attr_reader ci_failing(): bool
 
-    def self.members: () -> [ :name, :updated_at ]
+    def self.new: (String name, Time updated_at, bool ci_failing) -> instance
+                | (name: String, updated_at: Time, ci_failing: bool) -> instance
 
-    def members: () -> [ :name, :updated_at ]
+    def self.members: () -> [ :name, :updated_at, :ci_failing ]
+
+    def members: () -> [ :name, :updated_at, :ci_failing ]
   end
 end

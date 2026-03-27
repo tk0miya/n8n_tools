@@ -5,6 +5,15 @@ end
 interface _OctokitRepo
   def name: () -> String
   def updated_at: () -> Time
+  def default_branch: () -> String
+end
+
+interface _OctokitWorkflowRun
+  def conclusion: () -> String?
+end
+
+interface _OctokitWorkflowRuns
+  def workflow_runs: () -> Array[_OctokitWorkflowRun]
 end
 
 module Octokit
@@ -14,6 +23,8 @@ module Octokit
     def user: () -> _OctokitUser
 
     def repos: (String, ?type: String) -> Array[_OctokitRepo]
+
+    def workflow_runs: (String, ?per_page: Integer, ?branch: String) -> _OctokitWorkflowRuns
 
   end
 end
