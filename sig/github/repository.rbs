@@ -8,11 +8,13 @@ module GitHub
 
     attr_reader ci_failing(): bool
 
-    def self.new: (String name, Time updated_at, bool ci_failing) -> instance
-                | (name: String, updated_at: Time, ci_failing: bool) -> instance
+    attr_reader pull_requests_count(): Integer
 
-    def self.members: () -> [ :name, :updated_at, :ci_failing ]
+    def self.new: (String name, Time updated_at, bool ci_failing, Integer pull_requests_count) -> instance
+                | (name: String, updated_at: Time, ci_failing: bool, pull_requests_count: Integer) -> instance
 
-    def members: () -> [ :name, :updated_at, :ci_failing ]
+    def self.members: () -> [ :name, :updated_at, :ci_failing, :pull_requests_count ]
+
+    def members: () -> [ :name, :updated_at, :ci_failing, :pull_requests_count ]
   end
 end

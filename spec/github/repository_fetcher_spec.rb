@@ -30,6 +30,10 @@ RSpec.describe GitHub::RepositoryFetcher do
           .with("testuser/repo1", per_page: 1, branch: "main").and_return(workflow_runs_success)
         allow(client).to receive(:workflow_runs)
           .with("testuser/repo2", per_page: 1, branch: "master").and_return(workflow_runs_failure)
+        allow(client).to receive(:pull_requests)
+          .with("testuser/repo1", state: "open").and_return([double, double, double])
+        allow(client).to receive(:pull_requests)
+          .with("testuser/repo2", state: "open").and_return([double])
       end
 
       it "returns an array of Repository objects" do
@@ -53,6 +57,12 @@ RSpec.describe GitHub::RepositoryFetcher do
       it "sets ci_failing to true when latest run failed" do
         expect(fetcher.repositories[1].ci_failing).to be true
       end
+
+      it "sets pull_requests_count correctly" do
+        result = fetcher.repositories
+        expect(result[0].pull_requests_count).to eq(3)
+        expect(result[1].pull_requests_count).to eq(1)
+      end
     end
 
     context "when repository has no workflow runs" do
@@ -63,6 +73,7 @@ RSpec.describe GitHub::RepositoryFetcher do
         allow(client).to receive(:repos).with("testuser", type: "owner").and_return(repos)
         allow(client).to receive(:workflow_runs).with("testuser/repo1", per_page: 1,
                                                                         branch: "main").and_return(empty_runs)
+        allow(client).to receive(:pull_requests).with("testuser/repo1", state: "open").and_return([])
       end
 
       it "sets ci_failing to false" do

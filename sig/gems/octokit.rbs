@@ -26,5 +26,7 @@ module Octokit
 
     def workflow_runs: (String, ?per_page: Integer, ?branch: String) -> _OctokitWorkflowRuns
 
+    def pull_requests: (String, ?state: String) -> Array[untyped]
+
   end
 end
