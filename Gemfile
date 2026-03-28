@@ -4,6 +4,7 @@ source "https://rubygems.org"
 
 # gem "rails"
 
+gem "faraday-retry"
 gem "octokit"
 
 group :development do

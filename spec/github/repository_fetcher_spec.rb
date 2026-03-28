@@ -21,15 +21,27 @@ RSpec.describe GitHub::RepositoryFetcher do
           double(name: "repo2", updated_at: Time.new(2025, 6, 1), default_branch: "master")
         ]
       end
-      let(:workflow_runs_success) { double(workflow_runs: [double(conclusion: "success")]) }
-      let(:workflow_runs_failure) { double(workflow_runs: [double(conclusion: "failure")]) }
+      let(:workflow_runs_success) do
+        double(workflow_runs: [
+                 double(head_sha: "abc123", conclusion: "success"),
+                 double(head_sha: "abc123", conclusion: "success"),
+                 double(head_sha: "prev456", conclusion: "failure")
+               ])
+      end
+      let(:workflow_runs_failure) do
+        double(workflow_runs: [
+                 double(head_sha: "def789", conclusion: "success"),
+                 double(head_sha: "def789", conclusion: "failure"),
+                 double(head_sha: "prev456", conclusion: "success")
+               ])
+      end
 
       before do
         allow(client).to receive(:repos).with("testuser", type: "owner").and_return(repos)
-        allow(client).to receive(:workflow_runs)
-          .with("testuser/repo1", per_page: 1, branch: "main").and_return(workflow_runs_success)
-        allow(client).to receive(:workflow_runs)
-          .with("testuser/repo2", per_page: 1, branch: "master").and_return(workflow_runs_failure)
+        allow(client).to receive(:get)
+          .with("repos/testuser/repo1/actions/runs", branch: "main", per_page: 100).and_return(workflow_runs_success)
+        allow(client).to receive(:get)
+          .with("repos/testuser/repo2/actions/runs", branch: "master", per_page: 100).and_return(workflow_runs_failure)
         allow(client).to receive(:pull_requests)
           .with("testuser/repo1", state: "open").and_return([double, double, double])
         allow(client).to receive(:pull_requests)
@@ -50,11 +62,12 @@ RSpec.describe GitHub::RepositoryFetcher do
         expect(result[0].updated_at).to eq(Time.new(2025, 1, 1))
       end
 
-      it "sets ci_failing to false when latest run succeeded" do
+      it "sets ci_failing to false when all latest runs succeeded, ignoring older failures" do
+        # repo1: latest sha (abc123) all succeeded, previous sha (prev456) had a failure
         expect(fetcher.repositories[0].ci_failing).to be false
       end
 
-      it "sets ci_failing to true when latest run failed" do
+      it "sets ci_failing to true when any latest run failed" do
         expect(fetcher.repositories[1].ci_failing).to be true
       end
 
@@ -71,8 +84,8 @@ RSpec.describe GitHub::RepositoryFetcher do
 
       before do
         allow(client).to receive(:repos).with("testuser", type: "owner").and_return(repos)
-        allow(client).to receive(:workflow_runs).with("testuser/repo1", per_page: 1,
-                                                                        branch: "main").and_return(empty_runs)
+        allow(client).to receive(:get)
+          .with("repos/testuser/repo1/actions/runs", branch: "main", per_page: 100).and_return(empty_runs)
         allow(client).to receive(:pull_requests).with("testuser/repo1", state: "open").and_return([])
       end
 

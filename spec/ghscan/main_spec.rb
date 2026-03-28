@@ -52,7 +52,7 @@ RSpec.describe Ghscan::Main do
 
       before do
         allow(ENV).to receive(:fetch).with("GITHUB_TOKEN", nil).and_return("test-token")
-        allow(GitHub::RepositoryFetcher).to receive(:new).with(client:).and_return(fetcher)
+        allow(GitHub::RepositoryFetcher).to receive(:new).with(client:, debug: false).and_return(fetcher)
       end
 
       it "outputs JSON to stdout" do
@@ -65,7 +65,7 @@ RSpec.describe Ghscan::Main do
 
       before do
         allow(ENV).to receive(:fetch).with("GITHUB_TOKEN", nil).and_return("test-token")
-        allow(GitHub::RepositoryFetcher).to receive(:new).with(client:).and_return(fetcher)
+        allow(GitHub::RepositoryFetcher).to receive(:new).with(client:, debug: false).and_return(fetcher)
       end
 
       it "outputs an empty JSON array to stdout" do

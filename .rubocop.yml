@@ -53,6 +53,9 @@ Style/Documentation:
 Style/HashSyntax:
   EnforcedShorthandSyntax: always
 
+Style/ItBlockParameter:
+  Enabled: false
+
 Style/RbsInline/MissingTypeAnnotation:
   EnforcedStyle: doc_style_and_return_annotation
 
