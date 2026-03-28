@@ -1,2 +1,5 @@
-vendor/bundle/
+# NOTE: Entries are sorted in ASCII order.
+
+/.claude/settings.local.json
 /.gem_rbs_collection/
+/vendor/bundle/
