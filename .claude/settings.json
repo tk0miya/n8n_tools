@@ -1,4 +1,12 @@
 {
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:index.rubygems.org)",
+      "WebFetch(domain:rubygems.org)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(git:*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
