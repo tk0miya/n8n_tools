@@ -32,7 +32,7 @@ module Ghscan
 
     # @rbs repositories: Array[GitHub::Repository]
     def filter_repositories(repositories) #: Array[GitHub::Repository]
-      repositories.select { _1.ci_failing && _1.pull_requests_count >= 1 }
+      repositories.select { _1.ci_failing || _1.pull_requests_count >= 1 }
     end
 
     # @rbs repositories: Array[GitHub::Repository]
