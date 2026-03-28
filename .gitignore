@@ -1,5 +1,6 @@
 # NOTE: Entries are sorted in ASCII order.
 
 /.claude/settings.local.json
+/.claude/worktrees/
 /.gem_rbs_collection/
 /vendor/bundle/
