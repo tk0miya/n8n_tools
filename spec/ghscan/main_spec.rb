@@ -47,15 +47,17 @@ RSpec.describe Ghscan::Main do
           instance_double(GitHub::Repository,
                           name: "repo2", updated_at: Time.new(2025, 6, 1, 0, 0, 0, "+00:00"),
                           ci_failing: true, pull_requests_count: 0,
-                          language_versions: {})
+                          language_versions: {}),
+          instance_double(GitHub::Repository,
+                          name: "repo3", updated_at: Time.new(2025, 9, 1, 0, 0, 0, "+00:00"),
+                          ci_failing: true, pull_requests_count: 3,
+                          language_versions: { "ruby" => ["3.3"] })
         ]
       end
       let(:fetcher) { instance_double(GitHub::RepositoryFetcher, repositories: repos) }
       let(:expected_json) do
-        '[{"name":"repo1","updated_at":"2025-01-01T00:00:00+00:00",' \
-          '"ci_failing":false,"pull_requests_count":2,"language_versions":{"ruby":["3.2"]}},' \
-          '{"name":"repo2","updated_at":"2025-06-01T00:00:00+00:00",' \
-          '"ci_failing":true,"pull_requests_count":0,"language_versions":{}}]'
+        '[{"name":"repo3","updated_at":"2025-09-01T00:00:00+00:00",' \
+          '"ci_failing":true,"pull_requests_count":3,"language_versions":{"ruby":["3.3"]}}]'
       end
 
       before do
@@ -63,7 +65,7 @@ RSpec.describe Ghscan::Main do
         allow(GitHub::RepositoryFetcher).to receive(:new).with(client:, debug: false).and_return(fetcher)
       end
 
-      it "outputs JSON to stdout" do
+      it "outputs only repositories with failing CI and open PRs as JSON to stdout" do
         expect { main.run }.to output("#{expected_json}\n").to_stdout
       end
     end
@@ -78,6 +80,28 @@ RSpec.describe Ghscan::Main do
 
       it "outputs an empty JSON array to stdout" do
         expect { main.run }.to output("[]\n").to_stdout
+      end
+    end
+  end
+
+  describe "#filter_repositories" do
+    let(:repos) do
+      [
+        instance_double(GitHub::Repository, name: "repo1", ci_failing: false, pull_requests_count: 2),
+        instance_double(GitHub::Repository, name: "repo2", ci_failing: true,  pull_requests_count: 0),
+        instance_double(GitHub::Repository, name: "repo3", ci_failing: true,  pull_requests_count: 1),
+        instance_double(GitHub::Repository, name: "repo4", ci_failing: true,  pull_requests_count: 3)
+      ]
+    end
+
+    it "returns only repositories with failing CI and at least one open PR" do
+      result = main.send(:filter_repositories, repos)
+      expect(result.map(&:name)).to eq(%w[repo3 repo4])
+    end
+
+    context "when repositories is empty" do
+      it "returns an empty array" do
+        expect(main.send(:filter_repositories, [])).to eq([])
       end
     end
   end

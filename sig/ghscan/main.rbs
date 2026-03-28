@@ -12,6 +12,9 @@ module Ghscan
     def build_client: (String token) -> Octokit::Client
 
     # @rbs repositories: Array[GitHub::Repository]
+    def filter_repositories: (Array[GitHub::Repository] repositories) -> Array[GitHub::Repository]
+
+    # @rbs repositories: Array[GitHub::Repository]
     def format_output: (Array[GitHub::Repository] repositories) -> Array[Hash[String, untyped]]
   end
 end
