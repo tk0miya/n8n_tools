@@ -40,14 +40,22 @@ RSpec.describe Ghscan::Main do
     context "when GITHUB_TOKEN is set" do
       let(:repos) do
         [
-          instance_double(GitHub::Repository, name: "repo1", updated_at: Time.new(2025, 1, 1, 0, 0, 0, "+00:00")),
-          instance_double(GitHub::Repository, name: "repo2", updated_at: Time.new(2025, 6, 1, 0, 0, 0, "+00:00"))
+          instance_double(GitHub::Repository,
+                          name: "repo1", updated_at: Time.new(2025, 1, 1, 0, 0, 0, "+00:00"),
+                          ci_failing: false, pull_requests_count: 2,
+                          language_versions: { "ruby" => ["3.2"] }),
+          instance_double(GitHub::Repository,
+                          name: "repo2", updated_at: Time.new(2025, 6, 1, 0, 0, 0, "+00:00"),
+                          ci_failing: true, pull_requests_count: 0,
+                          language_versions: {})
         ]
       end
       let(:fetcher) { instance_double(GitHub::RepositoryFetcher, repositories: repos) }
       let(:expected_json) do
-        '[{"name":"repo1","updated_at":"2025-01-01T00:00:00+00:00"},' \
-          '{"name":"repo2","updated_at":"2025-06-01T00:00:00+00:00"}]'
+        '[{"name":"repo1","updated_at":"2025-01-01T00:00:00+00:00",' \
+          '"ci_failing":false,"pull_requests_count":2,"language_versions":{"ruby":["3.2"]}},' \
+          '{"name":"repo2","updated_at":"2025-06-01T00:00:00+00:00",' \
+          '"ci_failing":true,"pull_requests_count":0,"language_versions":{}}]'
       end
 
       before do
@@ -77,16 +85,26 @@ RSpec.describe Ghscan::Main do
   describe "#format_output" do
     let(:repos) do
       [
-        instance_double(GitHub::Repository, name: "repo1", updated_at: Time.new(2025, 1, 1, 0, 0, 0, "+00:00")),
-        instance_double(GitHub::Repository, name: "repo2", updated_at: Time.new(2025, 6, 1, 0, 0, 0, "+00:00"))
+        instance_double(GitHub::Repository,
+                        name: "repo1", updated_at: Time.new(2025, 1, 1, 0, 0, 0, "+00:00"),
+                        ci_failing: false, pull_requests_count: 2,
+                        language_versions: { "ruby" => ["3.2"] }),
+        instance_double(GitHub::Repository,
+                        name: "repo2", updated_at: Time.new(2025, 6, 1, 0, 0, 0, "+00:00"),
+                        ci_failing: true, pull_requests_count: 0,
+                        language_versions: {})
       ]
     end
 
-    it "returns an array of hashes with name and updated_at" do
+    it "returns an array of hashes with all repository attributes" do
       result = main.send(:format_output, repos)
       expect(result).to eq([
-                             { "name" => "repo1", "updated_at" => "2025-01-01T00:00:00+00:00" },
-                             { "name" => "repo2", "updated_at" => "2025-06-01T00:00:00+00:00" }
+                             { "name" => "repo1", "updated_at" => "2025-01-01T00:00:00+00:00",
+                               "ci_failing" => false, "pull_requests_count" => 2,
+                               "language_versions" => { "ruby" => ["3.2"] } },
+                             { "name" => "repo2", "updated_at" => "2025-06-01T00:00:00+00:00",
+                               "ci_failing" => true, "pull_requests_count" => 0,
+                               "language_versions" => {} }
                            ])
     end
 

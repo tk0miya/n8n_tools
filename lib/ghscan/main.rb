@@ -31,9 +31,15 @@ module Ghscan
     end
 
     # @rbs repositories: Array[GitHub::Repository]
-    def format_output(repositories) #: Array[Hash[String, String]]
+    def format_output(repositories) #: Array[Hash[String, untyped]]
       repositories.map do |repo|
-        { "name" => repo.name, "updated_at" => repo.updated_at.iso8601 }
+        {
+          "name" => repo.name,
+          "updated_at" => repo.updated_at.iso8601,
+          "ci_failing" => repo.ci_failing,
+          "pull_requests_count" => repo.pull_requests_count,
+          "language_versions" => repo.language_versions
+        }
       end
     end
   end
