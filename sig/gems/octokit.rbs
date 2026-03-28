@@ -18,15 +18,13 @@ end
 
 module Octokit
   class Client
-    def initialize: (?access_token: String) -> void
-
-    def user: () -> _OctokitUser
+    def user: (?(Integer | String) user, ?Hash[untyped, untyped] options) -> _OctokitUser
+            | ...
 
     def repos: (String, ?type: String) -> Array[_OctokitRepo]
 
     def workflow_runs: (String, ?per_page: Integer, ?branch: String) -> _OctokitWorkflowRuns
 
     def pull_requests: (String, ?state: String) -> Array[untyped]
-
   end
 end

@@ -9,6 +9,14 @@ gems:
     revision: 60d59c1b63ad551a5db5a6b62e8efe726b8815bf
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
+- name: addressable
+  version: '2.8'
+  source:
+    type: git
+    name: ruby/gem_rbs_collection
+    revision: 60d59c1b63ad551a5db5a6b62e8efe726b8815bf
+    remote: https://github.com/ruby/gem_rbs_collection.git
+    repo_dir: gems
 - name: ast
   version: '2.4'
   source:
@@ -57,6 +65,14 @@ gems:
   version: '0'
   source:
     type: stdlib
+- name: diff-lcs
+  version: '1.5'
+  source:
+    type: git
+    name: ruby/gem_rbs_collection
+    revision: 60d59c1b63ad551a5db5a6b62e8efe726b8815bf
+    remote: https://github.com/ruby/gem_rbs_collection.git
+    repo_dir: gems
 - name: digest
   version: '0'
   source:
@@ -65,6 +81,14 @@ gems:
   version: '0'
   source:
     type: stdlib
+- name: faraday
+  version: '2.7'
+  source:
+    type: git
+    name: ruby/gem_rbs_collection
+    revision: 60d59c1b63ad551a5db5a6b62e8efe726b8815bf
+    remote: https://github.com/ruby/gem_rbs_collection.git
+    repo_dir: gems
 - name: ffi
   version: 1.17.3
   source:
@@ -106,9 +130,13 @@ gems:
     remote: https://github.com/ruby/gem_rbs_collection.git
     repo_dir: gems
 - name: logger
-  version: '0'
+  version: '1.7'
   source:
-    type: stdlib
+    type: git
+    name: ruby/gem_rbs_collection
+    revision: 60d59c1b63ad551a5db5a6b62e8efe726b8815bf
+    remote: https://github.com/ruby/gem_rbs_collection.git
+    repo_dir: gems
 - name: minitest
   version: '5.25'
   source:
@@ -125,6 +153,22 @@ gems:
   version: 0.3.0
   source:
     type: rubygems
+- name: net-http
+  version: '0'
+  source:
+    type: stdlib
+- name: net-protocol
+  version: '0'
+  source:
+    type: stdlib
+- name: octokit
+  version: '8.0'
+  source:
+    type: git
+    name: ruby/gem_rbs_collection
+    revision: 60d59c1b63ad551a5db5a6b62e8efe726b8815bf
+    remote: https://github.com/ruby/gem_rbs_collection.git
+    repo_dir: gems
 - name: openssl
   version: '0'
   source:
@@ -155,6 +199,14 @@ gems:
     type: rubygems
 - name: rainbow
   version: '3.0'
+  source:
+    type: git
+    name: ruby/gem_rbs_collection
+    revision: 60d59c1b63ad551a5db5a6b62e8efe726b8815bf
+    remote: https://github.com/ruby/gem_rbs_collection.git
+    repo_dir: gems
+- name: rake
+  version: '13.0'
   source:
     type: git
     name: ruby/gem_rbs_collection
