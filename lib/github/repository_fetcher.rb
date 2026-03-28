@@ -2,6 +2,7 @@
 
 require "octokit"
 require_relative "repository"
+require_relative "workflow_parser"
 
 module GitHub
   class RepositoryFetcher
@@ -32,12 +33,18 @@ module GitHub
       warn "[debug] Processing #{repo.name} (#{index}/#{total})" if debug
       Repository.new(name: repo.name, updated_at: repo.updated_at,
                      ci_failing: ci_failing?(repo.name, repo.default_branch),
-                     pull_requests_count: pull_requests_count(repo.name))
+                     pull_requests_count: pull_requests_count(repo.name),
+                     language_versions: language_versions(repo.name))
     end
 
     # @rbs repo_name: String
     def pull_requests_count(repo_name) #: Integer
       client.pull_requests("#{login}/#{repo_name}", state: "open").length
+    end
+
+    # @rbs repo_name: String
+    def language_versions(repo_name) #: Hash[String, Array[String]]
+      WorkflowParser.new(client:, repo_full_name: "#{login}/#{repo_name}").language_versions
     end
 
     # @rbs repo_name: String

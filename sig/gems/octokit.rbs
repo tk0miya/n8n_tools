@@ -1,3 +1,9 @@
+interface _OctokitContent
+  def name: () -> String
+  def path: () -> String
+  def content: () -> String
+end
+
 interface _OctokitUser
   def login: () -> String
 end
@@ -18,6 +24,9 @@ interface _OctokitWorkflowRuns
 end
 
 module Octokit
+  class NotFound < StandardError
+  end
+
   class Client
     def initialize: (?access_token: String) -> void
 
@@ -28,6 +37,8 @@ module Octokit
     def get: (String, ?branch: String, ?per_page: Integer) -> _OctokitWorkflowRuns
 
     def pull_requests: (String, ?state: String) -> Array[untyped]
+
+    def contents: (String, ?path: String) -> untyped
 
   end
 end
