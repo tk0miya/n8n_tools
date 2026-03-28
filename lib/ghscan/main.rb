@@ -11,7 +11,7 @@ module Ghscan
       token = fetch_token
       client = build_client(token)
       fetcher = GitHub::RepositoryFetcher.new(client:, debug:)
-      puts JSON.generate(format_output(fetcher.repositories))
+      puts JSON.generate(format_output(filter_repositories(fetcher.repositories)))
     end
 
     private
@@ -28,6 +28,11 @@ module Ghscan
     # @rbs token: String
     def build_client(token) #: Octokit::Client
       Octokit::Client.new(access_token: token, auto_paginate: true) # steep:ignore UnexpectedKeywordArgument
+    end
+
+    # @rbs repositories: Array[GitHub::Repository]
+    def filter_repositories(repositories) #: Array[GitHub::Repository]
+      repositories.select { _1.ci_failing && _1.pull_requests_count >= 1 }
     end
 
     # @rbs repositories: Array[GitHub::Repository]
