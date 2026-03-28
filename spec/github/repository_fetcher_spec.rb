@@ -19,8 +19,10 @@ RSpec.describe GitHub::RepositoryFetcher do
     context "when user has repositories" do
       let(:repos) do
         [
-          double(name: "repo1", updated_at: Time.new(2025, 1, 1), default_branch: "main"),
-          double(name: "repo2", updated_at: Time.new(2025, 6, 1), default_branch: "master")
+          double(name: "repo1", updated_at: Time.new(2025, 1, 1), pushed_at: Time.now - (6 * 30 * 24 * 3600),
+                 default_branch: "main", archived: false, fork: false),
+          double(name: "repo2", updated_at: Time.new(2025, 6, 1), pushed_at: Time.now - (3 * 30 * 24 * 3600),
+                 default_branch: "master", archived: false, fork: false)
         ]
       end
       let(:workflow_runs_success) do
@@ -85,7 +87,10 @@ RSpec.describe GitHub::RepositoryFetcher do
     end
 
     context "when repository has language versions" do
-      let(:repos) { [double(name: "repo1", updated_at: Time.new(2025, 1, 1), default_branch: "main")] }
+      let(:repos) do
+        [double(name: "repo1", updated_at: Time.new(2025, 1, 1), pushed_at: Time.now - (6 * 30 * 24 * 3600),
+                default_branch: "main", archived: false, fork: false)]
+      end
       let(:workflow_runs_success) do
         double(workflow_runs: [double(head_sha: "abc123", conclusion: "success")])
       end
@@ -110,7 +115,10 @@ RSpec.describe GitHub::RepositoryFetcher do
     end
 
     context "when repository has no workflow runs" do
-      let(:repos) { [double(name: "repo1", updated_at: Time.new(2025, 1, 1), default_branch: "main")] }
+      let(:repos) do
+        [double(name: "repo1", updated_at: Time.new(2025, 1, 1), pushed_at: Time.now - (6 * 30 * 24 * 3600),
+                default_branch: "main", archived: false, fork: false)]
+      end
       let(:empty_runs) { double(workflow_runs: []) }
 
       before do
@@ -132,6 +140,54 @@ RSpec.describe GitHub::RepositoryFetcher do
 
       it "returns an empty array" do
         expect(fetcher.repositories).to eq([])
+      end
+    end
+
+    context "when filtering repositories" do
+      let(:active_repo) do
+        double(name: "active", updated_at: Time.now, pushed_at: Time.now - (3 * 30 * 24 * 3600),
+               default_branch: "main", archived: false, fork: false)
+      end
+      let(:archived_repo) do
+        double(name: "archived", updated_at: Time.now, pushed_at: Time.now - (3 * 30 * 24 * 3600),
+               default_branch: "main", archived: true, fork: false)
+      end
+      let(:forked_repo) do
+        double(name: "forked", updated_at: Time.now, pushed_at: Time.now - (3 * 30 * 24 * 3600),
+               default_branch: "main", archived: false, fork: true)
+      end
+      let(:old_repo) do
+        double(name: "old", updated_at: Time.now, pushed_at: Time.now - (2 * 365 * 24 * 3600),
+               default_branch: "main", archived: false, fork: false)
+      end
+      let(:workflow_runs) { double(workflow_runs: [double(head_sha: "abc", conclusion: "success")]) }
+
+      before do
+        allow(client).to receive(:repos).with("testuser", type: "owner")
+                                        .and_return([active_repo, archived_repo, forked_repo, old_repo])
+        allow(client).to receive(:get)
+          .with("repos/testuser/active/actions/runs", branch: "main", per_page: 100).and_return(workflow_runs)
+        allow(client).to receive(:pull_requests).with("testuser/active", state: "open").and_return([])
+      end
+
+      it "excludes archived repositories" do
+        result = fetcher.repositories
+        expect(result.map(&:name)).not_to include("archived")
+      end
+
+      it "excludes forked repositories" do
+        result = fetcher.repositories
+        expect(result.map(&:name)).not_to include("forked")
+      end
+
+      it "excludes repositories with no push in the last year" do
+        result = fetcher.repositories
+        expect(result.map(&:name)).not_to include("old")
+      end
+
+      it "includes only active non-forked repositories pushed within the last year" do
+        result = fetcher.repositories
+        expect(result.map(&:name)).to eq(["active"])
       end
     end
   end

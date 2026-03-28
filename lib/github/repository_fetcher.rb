@@ -17,7 +17,14 @@ module GitHub
     def repositories #: Array[GitHub::Repository]
       repos = client.repos(login, type: "owner")
       warn "[debug] Found #{repos.length} repositories" if debug
-      repos.map.with_index(1) { |repo, i| build_repository(repo, i, repos.length) }
+
+      active_repos = repos
+                     .reject(&:archived)
+                     .reject(&:fork)
+                     .select { _1.pushed_at > one_year_ago }
+      warn "[debug] #{active_repos.length} repositories after filtering" if debug
+
+      active_repos.map.with_index(1) { |repo, i| build_repository(repo, i, active_repos.length) }
     end
 
     private
@@ -25,6 +32,10 @@ module GitHub
     attr_reader :client #: Octokit::Client
     attr_reader :login  #: String
     attr_reader :debug  #: bool
+
+    def one_year_ago #: Time
+      Time.now - (365 * 24 * 60 * 60)
+    end
 
     # @rbs repo: untyped
     # @rbs index: Integer

@@ -16,6 +16,8 @@ module GitHub
 
     attr_reader debug: bool
 
+    def one_year_ago: () -> Time
+
     # @rbs repo: untyped
     # @rbs index: Integer
     # @rbs total: Integer
