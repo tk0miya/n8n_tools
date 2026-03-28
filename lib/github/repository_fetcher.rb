@@ -6,23 +6,34 @@ require_relative "repository"
 module GitHub
   class RepositoryFetcher
     # @rbs client: Octokit::Client
-    def initialize(client:) #: void
+    # @rbs debug: bool
+    def initialize(client:, debug: false) #: void
       @client = client
       @login = client.user.login
+      @debug = debug
     end
 
     def repositories #: Array[GitHub::Repository]
-      client.repos(login, type: "owner").map do |repo|
-        Repository.new(name: repo.name, updated_at: repo.updated_at,
-                       ci_failing: ci_failing?(repo.name, repo.default_branch),
-                       pull_requests_count: pull_requests_count(repo.name))
-      end
+      repos = client.repos(login, type: "owner")
+      warn "[debug] Found #{repos.length} repositories" if debug
+      repos.map.with_index(1) { |repo, i| build_repository(repo, i, repos.length) }
     end
 
     private
 
     attr_reader :client #: Octokit::Client
     attr_reader :login  #: String
+    attr_reader :debug  #: bool
+
+    # @rbs repo: untyped
+    # @rbs index: Integer
+    # @rbs total: Integer
+    def build_repository(repo, index, total) #: GitHub::Repository
+      warn "[debug] Processing #{repo.name} (#{index}/#{total})" if debug
+      Repository.new(name: repo.name, updated_at: repo.updated_at,
+                     ci_failing: ci_failing?(repo.name, repo.default_branch),
+                     pull_requests_count: pull_requests_count(repo.name))
+    end
 
     # @rbs repo_name: String
     def pull_requests_count(repo_name) #: Integer
@@ -32,13 +43,12 @@ module GitHub
     # @rbs repo_name: String
     # @rbs branch: String
     def ci_failing?(repo_name, branch) #: bool
-      runs = client.workflow_runs("#{login}/#{repo_name}", per_page: 1, branch:).workflow_runs
+      runs = client.get("repos/#{login}/#{repo_name}/actions/runs", branch:, per_page: 100).workflow_runs
       return false if runs.empty?
 
-      run = runs.first
-      return false unless run
-
-      run.conclusion != "success"
+      latest_sha = runs.first&.head_sha or return false
+      latest_runs = runs.select { _1.head_sha == latest_sha }
+      latest_runs.any? { _1.conclusion != "success" }
     end
   end
 end

@@ -3,7 +3,8 @@
 module GitHub
   class RepositoryFetcher
     # @rbs client: Octokit::Client
-    def initialize: (client: Octokit::Client) -> void
+    # @rbs debug: bool
+    def initialize: (client: Octokit::Client, ?debug: bool) -> void
 
     def repositories: () -> Array[GitHub::Repository]
 
@@ -12,6 +13,13 @@ module GitHub
     attr_reader client: Octokit::Client
 
     attr_reader login: String
+
+    attr_reader debug: bool
+
+    # @rbs repo: untyped
+    # @rbs index: Integer
+    # @rbs total: Integer
+    def build_repository: (untyped repo, Integer index, Integer total) -> GitHub::Repository
 
     # @rbs repo_name: String
     def pull_requests_count: (String repo_name) -> Integer

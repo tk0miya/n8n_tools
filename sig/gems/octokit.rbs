@@ -9,6 +9,7 @@ interface _OctokitRepo
 end
 
 interface _OctokitWorkflowRun
+  def head_sha: () -> String
   def conclusion: () -> String?
 end
 
@@ -24,7 +25,7 @@ module Octokit
 
     def repos: (String, ?type: String) -> Array[_OctokitRepo]
 
-    def workflow_runs: (String, ?per_page: Integer, ?branch: String) -> _OctokitWorkflowRuns
+    def get: (String, ?branch: String, ?per_page: Integer) -> _OctokitWorkflowRuns
 
     def pull_requests: (String, ?state: String) -> Array[untyped]
 

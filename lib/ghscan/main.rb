@@ -7,9 +7,10 @@ require_relative "../github/repository_fetcher"
 module Ghscan
   class Main
     def run #: void
+      debug = ARGV.include?("--debug")
       token = fetch_token
       client = build_client(token)
-      fetcher = GitHub::RepositoryFetcher.new(client:)
+      fetcher = GitHub::RepositoryFetcher.new(client:, debug:)
       puts JSON.generate(format_output(fetcher.repositories))
     end
 
