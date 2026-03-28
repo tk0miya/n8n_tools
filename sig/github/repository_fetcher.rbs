@@ -28,9 +28,5 @@ module GitHub
 
     # @rbs repo_name: String
     def language_versions: (String repo_name) -> Hash[String, Array[String]]
-
-    # @rbs repo_name: String
-    # @rbs branch: String
-    def ci_failing?: (String repo_name, String branch) -> bool
   end
 end
