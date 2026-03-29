@@ -40,10 +40,20 @@ module Ghscan
     # @rbs client: Octokit::Client
     def latest_language_versions(client) #: Hash[String, Array[Integer]]
       LANGUAGE_RELEASE_REPOS.transform_values do |repo|
-        tag = client.latest_release(repo).tag_name
+        tag = latest_release_tag(client, repo)
         parts = tag.delete_prefix("v").tr("_", ".").split(".", 3)
         [parts[0].to_i, (parts[1] || "0").to_i]
       end
+    end
+
+    # @rbs client: Octokit::Client
+    # @rbs repo: String
+    def latest_release_tag(client, repo) #: String
+      client.latest_release(repo).tag_name
+    rescue Octokit::NotFound
+      # Fall back to tags when the repo doesn't use GitHub releases (e.g. python/cpython)
+      stable_tag = client.tags(repo).find { _1.name.match?(/^v?\d+\.\d+[._]\d+$/) }
+      stable_tag&.name || raise("No stable release found for #{repo}")
     end
 
     # @rbs repositories: Array[GitHub::Repository]
