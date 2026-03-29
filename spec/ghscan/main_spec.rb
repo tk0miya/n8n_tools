@@ -42,17 +42,14 @@ RSpec.describe Ghscan::Main do
         [
           instance_double(GitHub::Repository,
                           name: "repo1", url: "https://github.com/testuser/repo1",
-                          updated_at: Time.new(2025, 1, 1, 0, 0, 0, "+00:00"),
                           pull_requests_count: 2,
                           language_versions: { "ruby" => ["3.2"] }),
           instance_double(GitHub::Repository,
                           name: "repo2", url: "https://github.com/testuser/repo2",
-                          updated_at: Time.new(2025, 6, 1, 0, 0, 0, "+00:00"),
                           pull_requests_count: 0,
                           language_versions: {}),
           instance_double(GitHub::Repository,
                           name: "repo3", url: "https://github.com/testuser/repo3",
-                          updated_at: Time.new(2025, 9, 1, 0, 0, 0, "+00:00"),
                           pull_requests_count: 3,
                           language_versions: { "ruby" => ["3.3"] })
         ]
@@ -60,10 +57,8 @@ RSpec.describe Ghscan::Main do
       let(:fetcher) { instance_double(GitHub::RepositoryFetcher, repositories: repos) }
       let(:expected_json) do
         '[{"name":"repo1","url":"https://github.com/testuser/repo1",' \
-          '"updated_at":"2025-01-01T00:00:00+00:00",' \
           '"pull_requests_count":2,"language_versions":{"ruby":["3.2"]}},' \
           '{"name":"repo3","url":"https://github.com/testuser/repo3",' \
-          '"updated_at":"2025-09-01T00:00:00+00:00",' \
           '"pull_requests_count":3,"language_versions":{"ruby":["3.3"]}}]'
       end
 
@@ -288,12 +283,10 @@ RSpec.describe Ghscan::Main do
       [
         instance_double(GitHub::Repository,
                         name: "repo1", url: "https://github.com/testuser/repo1",
-                        updated_at: Time.new(2025, 1, 1, 0, 0, 0, "+00:00"),
                         pull_requests_count: 2,
                         language_versions: { "ruby" => ["3.2"] }),
         instance_double(GitHub::Repository,
                         name: "repo2", url: "https://github.com/testuser/repo2",
-                        updated_at: Time.new(2025, 6, 1, 0, 0, 0, "+00:00"),
                         pull_requests_count: 0,
                         language_versions: {})
       ]
@@ -303,11 +296,9 @@ RSpec.describe Ghscan::Main do
       result = main.send(:format_output, repos)
       expect(result).to eq([
                              { "name" => "repo1", "url" => "https://github.com/testuser/repo1",
-                               "updated_at" => "2025-01-01T00:00:00+00:00",
                                "pull_requests_count" => 2,
                                "language_versions" => { "ruby" => ["3.2"] } },
                              { "name" => "repo2", "url" => "https://github.com/testuser/repo2",
-                               "updated_at" => "2025-06-01T00:00:00+00:00",
                                "pull_requests_count" => 0,
                                "language_versions" => {} }
                            ])

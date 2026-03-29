@@ -6,17 +6,15 @@ module GitHub
 
     attr_reader url(): String
 
-    attr_reader updated_at(): Time
-
     attr_reader pull_requests_count(): Integer
 
     attr_reader language_versions(): Hash[String, Array[String]]
 
-    def self.new: (String name, String url, Time updated_at, Integer pull_requests_count, Hash[String, Array[String]] language_versions) -> instance
-                | (name: String, url: String, updated_at: Time, pull_requests_count: Integer, language_versions: Hash[String, Array[String]]) -> instance
+    def self.new: (String name, String url, Integer pull_requests_count, Hash[String, Array[String]] language_versions) -> instance
+                | (name: String, url: String, pull_requests_count: Integer, language_versions: Hash[String, Array[String]]) -> instance
 
-    def self.members: () -> [ :name, :url, :updated_at, :pull_requests_count, :language_versions ]
+    def self.members: () -> [ :name, :url, :pull_requests_count, :language_versions ]
 
-    def members: () -> [ :name, :url, :updated_at, :pull_requests_count, :language_versions ]
+    def members: () -> [ :name, :url, :pull_requests_count, :language_versions ]
   end
 end
