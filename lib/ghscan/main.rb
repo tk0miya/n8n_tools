@@ -89,6 +89,7 @@ module Ghscan
       repositories.map do |repo|
         {
           "name" => repo.name,
+          "url" => repo.url,
           "updated_at" => repo.updated_at.iso8601,
           "pull_requests_count" => repo.pull_requests_count,
           "language_versions" => repo.language_versions

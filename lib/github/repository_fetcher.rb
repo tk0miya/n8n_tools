@@ -42,7 +42,7 @@ module GitHub
     # @rbs total: Integer
     def build_repository(repo, index, total) #: GitHub::Repository
       warn "[debug] Processing #{repo.name} (#{index}/#{total})" if debug
-      Repository.new(name: repo.name, updated_at: repo.updated_at,
+      Repository.new(name: repo.name, url: repo.html_url, updated_at: repo.updated_at,
                      pull_requests_count: pull_requests_count(repo.name),
                      language_versions: language_versions(repo.name))
     end
