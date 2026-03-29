@@ -30,8 +30,8 @@ module GitHub
       versions.transform_values(&:uniq)
     end
 
-    def uses_actionlint? #: bool
-      workflow_files.any? { _1.match?(/\bactionlint\b/) }
+    def no_actionlint? #: bool
+      workflow_files.any? && workflow_files.none? { _1.match?(/\bactionlint\b/) }
     end
 
     private

@@ -14,7 +14,7 @@ module GitHub
 
     def language_versions: () -> Hash[String, Array[String]]
 
-    def uses_actionlint?: () -> bool
+    def no_actionlint?: () -> bool
 
     private
 
