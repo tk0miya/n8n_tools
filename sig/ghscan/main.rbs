@@ -16,6 +16,10 @@ module Ghscan
     # @rbs client: Octokit::Client
     def latest_language_versions: (Octokit::Client client) -> Hash[String, Array[Integer]]
 
+    # @rbs client: Octokit::Client
+    # @rbs repo: String
+    def latest_release_tag: (Octokit::Client client, String repo) -> String
+
     # @rbs repositories: Array[GitHub::Repository]
     # @rbs latest_versions: Hash[String, Array[Integer]]
     def filter_repositories: (Array[GitHub::Repository] repositories, Hash[String, Array[Integer]] latest_versions) -> Array[GitHub::Repository]

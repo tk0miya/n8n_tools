@@ -92,6 +92,50 @@ RSpec.describe Ghscan::Main do
     end
   end
 
+  describe "#latest_release_tag" do
+    context "when the repo has a GitHub release" do
+      before do
+        allow(client).to receive(:latest_release).with("ruby/ruby").and_return(double(tag_name: "v4_0_2"))
+      end
+
+      it "returns the tag name from the latest release" do
+        expect(main.send(:latest_release_tag, client, "ruby/ruby")).to eq("v4_0_2")
+      end
+    end
+
+    context "when the repo does not have GitHub releases" do
+      let(:tags) do
+        [
+          double(name: "v3.15.0a7"),
+          double(name: "v3.14.1"),
+          double(name: "v3.13.3"),
+          double(name: "v3.14.0")
+        ]
+      end
+
+      before do
+        allow(client).to receive(:latest_release).with("python/cpython").and_raise(Octokit::NotFound)
+        allow(client).to receive(:tags).with("python/cpython").and_return(tags)
+      end
+
+      it "falls back to the first stable tag" do
+        expect(main.send(:latest_release_tag, client, "python/cpython")).to eq("v3.14.1")
+      end
+    end
+
+    context "when the repo has no stable tags" do
+      before do
+        allow(client).to receive(:latest_release).with("python/cpython").and_raise(Octokit::NotFound)
+        allow(client).to receive(:tags).with("python/cpython").and_return([double(name: "v3.15.0a7")])
+      end
+
+      it "raises an error" do
+        expect { main.send(:latest_release_tag, client, "python/cpython") }
+          .to raise_error(RuntimeError, "No stable release found for python/cpython")
+      end
+    end
+  end
+
   describe "#latest_language_versions" do
     before do
       allow(client).to receive(:latest_release).with("ruby/ruby").and_return(double(tag_name: "v4_0_2"))
