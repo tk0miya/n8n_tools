@@ -10,11 +10,13 @@ module GitHub
 
     attr_reader language_versions(): Hash[String, Array[String]]
 
-    def self.new: (String name, String url, Integer pull_requests_count, Hash[String, Array[String]] language_versions) -> instance
-                | (name: String, url: String, pull_requests_count: Integer, language_versions: Hash[String, Array[String]]) -> instance
+    attr_reader uses_actionlint(): bool
 
-    def self.members: () -> [ :name, :url, :pull_requests_count, :language_versions ]
+    def self.new: (String name, String url, Integer pull_requests_count, Hash[String, Array[String]] language_versions, bool uses_actionlint) -> instance
+                | (name: String, url: String, pull_requests_count: Integer, language_versions: Hash[String, Array[String]], uses_actionlint: bool) -> instance
 
-    def members: () -> [ :name, :url, :pull_requests_count, :language_versions ]
+    def self.members: () -> [ :name, :url, :pull_requests_count, :language_versions, :uses_actionlint ]
+
+    def members: () -> [ :name, :url, :pull_requests_count, :language_versions, :uses_actionlint ]
   end
 end

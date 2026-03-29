@@ -8,6 +8,142 @@ RSpec.describe GitHub::WorkflowParser do
 
   let(:client) { instance_double(Octokit::Client) }
 
+  describe "#uses_actionlint?" do
+    context "when .github/workflows/ does not exist" do
+      before do
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows")
+          .and_raise(Octokit::NotFound)
+      end
+
+      it "returns false" do
+        expect(parser.uses_actionlint?).to be false
+      end
+    end
+
+    context "when workflow runs actionlint via run: step" do
+      let(:workflow_content) do
+        <<~YAML
+          jobs:
+            lint:
+              steps:
+                - uses: actions/checkout@v4
+                - run: actionlint
+        YAML
+      end
+      let(:entries) { [double(name: "ci.yml", path: ".github/workflows/ci.yml")] }
+      let(:file_entry) { double(content: Base64.encode64(workflow_content)) }
+
+      before do
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows")
+          .and_return(entries)
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows/ci.yml")
+          .and_return(file_entry)
+      end
+
+      it "returns true" do
+        expect(parser.uses_actionlint?).to be true
+      end
+    end
+
+    context "when workflow uses actionlint via uses: action" do
+      let(:workflow_content) do
+        <<~YAML
+          jobs:
+            lint:
+              steps:
+                - uses: actions/checkout@v4
+                - uses: rhysd/action-actionlint@v1
+        YAML
+      end
+      let(:entries) { [double(name: "ci.yml", path: ".github/workflows/ci.yml")] }
+      let(:file_entry) { double(content: Base64.encode64(workflow_content)) }
+
+      before do
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows")
+          .and_return(entries)
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows/ci.yml")
+          .and_return(file_entry)
+      end
+
+      it "returns true" do
+        expect(parser.uses_actionlint?).to be true
+      end
+    end
+
+    context "when workflow does not run actionlint" do
+      let(:workflow_content) do
+        <<~YAML
+          jobs:
+            test:
+              steps:
+                - uses: actions/checkout@v4
+                - run: bundle exec rspec
+        YAML
+      end
+      let(:entries) { [double(name: "ci.yml", path: ".github/workflows/ci.yml")] }
+      let(:file_entry) { double(content: Base64.encode64(workflow_content)) }
+
+      before do
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows")
+          .and_return(entries)
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows/ci.yml")
+          .and_return(file_entry)
+      end
+
+      it "returns false" do
+        expect(parser.uses_actionlint?).to be false
+      end
+    end
+
+    context "when actionlint is run in one of multiple workflow files" do
+      let(:ci_content) do
+        <<~YAML
+          jobs:
+            test:
+              steps:
+                - run: bundle exec rspec
+        YAML
+      end
+      let(:lint_content) do
+        <<~YAML
+          jobs:
+            lint:
+              steps:
+                - run: actionlint
+        YAML
+      end
+      let(:entries) do
+        [
+          double(name: "ci.yml", path: ".github/workflows/ci.yml"),
+          double(name: "lint.yml", path: ".github/workflows/lint.yml")
+        ]
+      end
+
+      before do
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows")
+          .and_return(entries)
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows/ci.yml")
+          .and_return(double(content: Base64.encode64(ci_content)))
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows/lint.yml")
+          .and_return(double(content: Base64.encode64(lint_content)))
+      end
+
+      it "returns true" do
+        expect(parser.uses_actionlint?).to be true
+      end
+    end
+  end
+
   describe "#language_versions" do
     context "when .github/workflows/ does not exist" do
       before do
