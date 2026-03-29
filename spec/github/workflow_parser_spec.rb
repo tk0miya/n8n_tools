@@ -75,6 +75,37 @@ RSpec.describe GitHub::WorkflowParser do
       end
     end
 
+    context "when a workflow uses matrix build with 'ruby' key (not 'ruby-version')" do
+      let(:workflow_content) do
+        <<~YAML
+          jobs:
+            build:
+              strategy:
+                matrix:
+                  ruby: ['3.4.3']
+              steps:
+                - uses: ruby/setup-ruby@v1
+                  with:
+                    ruby-version: ${{ matrix.ruby }}
+        YAML
+      end
+      let(:entries) { [double(name: "main.yml", path: ".github/workflows/main.yml")] }
+      let(:file_entry) { double(content: Base64.encode64(workflow_content)) }
+
+      before do
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows")
+          .and_return(entries)
+        allow(client).to receive(:contents)
+          .with("testuser/repo1", path: ".github/workflows/main.yml")
+          .and_return(file_entry)
+      end
+
+      it "returns the ruby version" do
+        expect(parser.language_versions).to eq({ "ruby" => ["3.4.3"] })
+      end
+    end
+
     context "when a workflow uses matrix build for ruby-version" do
       let(:workflow_content) do
         <<~YAML
