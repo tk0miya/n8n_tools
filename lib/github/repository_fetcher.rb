@@ -46,7 +46,7 @@ module GitHub
       Repository.new(name: repo.name, url: repo.html_url,
                      pull_requests_count: pull_requests_count(repo.name),
                      language_versions: parser.language_versions,
-                     uses_actionlint: parser.uses_actionlint?)
+                     no_actionlint: parser.no_actionlint?)
     end
 
     # @rbs repo_name: String
