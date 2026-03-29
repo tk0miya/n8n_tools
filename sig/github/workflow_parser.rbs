@@ -6,17 +6,23 @@ module GitHub
 
     MATRIX_REF_PATTERN: Regexp
 
+    @workflow_files: Array[String]
+
     # @rbs client: Octokit::Client
     # @rbs repo_full_name: String
     def initialize: (client: Octokit::Client, repo_full_name: String) -> void
 
     def language_versions: () -> Hash[String, Array[String]]
 
+    def uses_actionlint?: () -> bool
+
     private
 
     attr_reader client: Octokit::Client
 
     attr_reader repo_full_name: String
+
+    def workflow_files: () -> Array[String]
 
     def fetch_workflow_files: () -> Array[String]
 

@@ -61,7 +61,8 @@ module Ghscan
     def filter_repositories(repositories, latest_versions) #: Array[GitHub::Repository]
       repositories.select do |repo|
         repo.pull_requests_count >= 1 ||
-          outdated_language_version?(repo, latest_versions)
+          outdated_language_version?(repo, latest_versions) ||
+          !repo.uses_actionlint
       end
     end
 
@@ -91,7 +92,8 @@ module Ghscan
           "name" => repo.name,
           "url" => repo.url,
           "pull_requests_count" => repo.pull_requests_count,
-          "language_versions" => repo.language_versions
+          "language_versions" => repo.language_versions,
+          "uses_actionlint" => repo.uses_actionlint
         }
       end
     end

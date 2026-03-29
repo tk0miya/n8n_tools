@@ -43,23 +43,26 @@ RSpec.describe Ghscan::Main do
           instance_double(GitHub::Repository,
                           name: "repo1", url: "https://github.com/testuser/repo1",
                           pull_requests_count: 2,
-                          language_versions: { "ruby" => ["3.2"] }),
+                          language_versions: { "ruby" => ["3.2"] },
+                          uses_actionlint: true),
           instance_double(GitHub::Repository,
                           name: "repo2", url: "https://github.com/testuser/repo2",
                           pull_requests_count: 0,
-                          language_versions: {}),
+                          language_versions: {},
+                          uses_actionlint: true),
           instance_double(GitHub::Repository,
                           name: "repo3", url: "https://github.com/testuser/repo3",
                           pull_requests_count: 3,
-                          language_versions: { "ruby" => ["3.3"] })
+                          language_versions: { "ruby" => ["3.3"] },
+                          uses_actionlint: true)
         ]
       end
       let(:fetcher) { instance_double(GitHub::RepositoryFetcher, repositories: repos) }
       let(:expected_json) do
         '[{"name":"repo1","url":"https://github.com/testuser/repo1",' \
-          '"pull_requests_count":2,"language_versions":{"ruby":["3.2"]}},' \
+          '"pull_requests_count":2,"language_versions":{"ruby":["3.2"]},"uses_actionlint":true},' \
           '{"name":"repo3","url":"https://github.com/testuser/repo3",' \
-          '"pull_requests_count":3,"language_versions":{"ruby":["3.3"]}}]'
+          '"pull_requests_count":3,"language_versions":{"ruby":["3.3"]},"uses_actionlint":true}]'
       end
 
       before do
@@ -153,10 +156,14 @@ RSpec.describe Ghscan::Main do
     let(:latest_versions) { { "ruby" => [4, 0], "node" => [22, 14], "python" => [3, 13] } }
     let(:repos) do
       [
-        instance_double(GitHub::Repository, name: "repo1", pull_requests_count: 0, language_versions: {}),
-        instance_double(GitHub::Repository, name: "repo2", pull_requests_count: 2, language_versions: {}),
-        instance_double(GitHub::Repository, name: "repo3", pull_requests_count: 0, language_versions: {}),
-        instance_double(GitHub::Repository, name: "repo4", pull_requests_count: 3, language_versions: {})
+        instance_double(GitHub::Repository,
+                        name: "repo1", pull_requests_count: 0, language_versions: {}, uses_actionlint: true),
+        instance_double(GitHub::Repository,
+                        name: "repo2", pull_requests_count: 2, language_versions: {}, uses_actionlint: true),
+        instance_double(GitHub::Repository,
+                        name: "repo3", pull_requests_count: 0, language_versions: {}, uses_actionlint: true),
+        instance_double(GitHub::Repository,
+                        name: "repo4", pull_requests_count: 3, language_versions: {}, uses_actionlint: true)
       ]
     end
 
@@ -168,7 +175,8 @@ RSpec.describe Ghscan::Main do
     context "when a repository uses an outdated language version" do
       let(:outdated_repo) do
         instance_double(GitHub::Repository, name: "outdated",
-                                            pull_requests_count: 0, language_versions: { "ruby" => ["3.2"] })
+                                            pull_requests_count: 0, language_versions: { "ruby" => ["3.2"] },
+                                            uses_actionlint: true)
       end
 
       it "includes the repository in the result" do
@@ -180,11 +188,38 @@ RSpec.describe Ghscan::Main do
     context "when a repository uses the latest language version" do
       let(:current_repo) do
         instance_double(GitHub::Repository, name: "current",
-                                            pull_requests_count: 0, language_versions: { "ruby" => ["4.0"] })
+                                            pull_requests_count: 0, language_versions: { "ruby" => ["4.0"] },
+                                            uses_actionlint: true)
       end
 
       it "excludes the repository from the result" do
         result = main.send(:filter_repositories, [current_repo], latest_versions)
+        expect(result).to be_empty
+      end
+    end
+
+    context "when a repository does not run actionlint" do
+      let(:no_actionlint_repo) do
+        instance_double(GitHub::Repository, name: "no-actionlint",
+                                            pull_requests_count: 0, language_versions: { "ruby" => ["4.0"] },
+                                            uses_actionlint: false)
+      end
+
+      it "includes the repository in the result" do
+        result = main.send(:filter_repositories, [no_actionlint_repo], latest_versions)
+        expect(result.map(&:name)).to eq(["no-actionlint"])
+      end
+    end
+
+    context "when a repository runs actionlint" do
+      let(:with_actionlint_repo) do
+        instance_double(GitHub::Repository, name: "with-actionlint",
+                                            pull_requests_count: 0, language_versions: { "ruby" => ["4.0"] },
+                                            uses_actionlint: true)
+      end
+
+      it "excludes the repository from the result (when no other conditions match)" do
+        result = main.send(:filter_repositories, [with_actionlint_repo], latest_versions)
         expect(result).to be_empty
       end
     end
@@ -284,11 +319,13 @@ RSpec.describe Ghscan::Main do
         instance_double(GitHub::Repository,
                         name: "repo1", url: "https://github.com/testuser/repo1",
                         pull_requests_count: 2,
-                        language_versions: { "ruby" => ["3.2"] }),
+                        language_versions: { "ruby" => ["3.2"] },
+                        uses_actionlint: true),
         instance_double(GitHub::Repository,
                         name: "repo2", url: "https://github.com/testuser/repo2",
                         pull_requests_count: 0,
-                        language_versions: {})
+                        language_versions: {},
+                        uses_actionlint: false)
       ]
     end
 
@@ -297,10 +334,12 @@ RSpec.describe Ghscan::Main do
       expect(result).to eq([
                              { "name" => "repo1", "url" => "https://github.com/testuser/repo1",
                                "pull_requests_count" => 2,
-                               "language_versions" => { "ruby" => ["3.2"] } },
+                               "language_versions" => { "ruby" => ["3.2"] },
+                               "uses_actionlint" => true },
                              { "name" => "repo2", "url" => "https://github.com/testuser/repo2",
                                "pull_requests_count" => 0,
-                               "language_versions" => {} }
+                               "language_versions" => {},
+                               "uses_actionlint" => false }
                            ])
     end
 

@@ -5,6 +5,7 @@ module GitHub
     :name,                 #: String
     :url,                  #: String
     :pull_requests_count,  #: Integer
-    :language_versions     #: Hash[String, Array[String]]
+    :language_versions,    #: Hash[String, Array[String]]
+    :uses_actionlint       #: bool
   )
 end

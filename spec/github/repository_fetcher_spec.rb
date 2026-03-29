@@ -8,7 +8,7 @@ RSpec.describe GitHub::RepositoryFetcher do
 
   let(:client) { instance_double(Octokit::Client) }
   let(:user) { double(login: "testuser") }
-  let(:workflow_parser) { instance_double(GitHub::WorkflowParser, language_versions: {}) }
+  let(:workflow_parser) { instance_double(GitHub::WorkflowParser, language_versions: {}, uses_actionlint?: false) }
 
   before do
     allow(client).to receive(:user).and_return(user)
@@ -68,7 +68,8 @@ RSpec.describe GitHub::RepositoryFetcher do
                 default_branch: "main", archived: false, fork: false)]
       end
       let(:parser_with_versions) do
-        instance_double(GitHub::WorkflowParser, language_versions: { "ruby" => ["3.1", "3.2"] })
+        instance_double(GitHub::WorkflowParser,
+                        language_versions: { "ruby" => ["3.1", "3.2"] }, uses_actionlint?: false)
       end
 
       before do

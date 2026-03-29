@@ -13,6 +13,7 @@ module GitHub
     }.freeze #: Hash[String, String]
 
     MATRIX_REF_PATTERN = /\A\$\{\{\s*matrix\.([\w-]+)\s*\}\}\z/ #: Regexp
+    # @rbs @workflow_files: Array[String]
 
     # @rbs client: Octokit::Client
     # @rbs repo_full_name: String
@@ -23,16 +24,24 @@ module GitHub
 
     def language_versions #: Hash[String, Array[String]]
       versions = {} #: Hash[String, Array[String]]
-      fetch_workflow_files.each do |content|
+      workflow_files.each do |content|
         extract_from_workflow(content, versions)
       end
       versions.transform_values(&:uniq)
+    end
+
+    def uses_actionlint? #: bool
+      workflow_files.any? { _1.match?(/\bactionlint\b/) }
     end
 
     private
 
     attr_reader :client #: Octokit::Client
     attr_reader :repo_full_name #: String
+
+    def workflow_files #: Array[String]
+      @workflow_files ||= fetch_workflow_files
+    end
 
     def fetch_workflow_files #: Array[String]
       entries = client.contents(repo_full_name, path: ".github/workflows")

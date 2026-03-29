@@ -42,9 +42,11 @@ module GitHub
     # @rbs total: Integer
     def build_repository(repo, index, total) #: GitHub::Repository
       warn "[debug] Processing #{repo.name} (#{index}/#{total})" if debug
+      parser = workflow_parser(repo.name)
       Repository.new(name: repo.name, url: repo.html_url,
                      pull_requests_count: pull_requests_count(repo.name),
-                     language_versions: language_versions(repo.name))
+                     language_versions: parser.language_versions,
+                     uses_actionlint: parser.uses_actionlint?)
     end
 
     # @rbs repo_name: String
@@ -53,8 +55,8 @@ module GitHub
     end
 
     # @rbs repo_name: String
-    def language_versions(repo_name) #: Hash[String, Array[String]]
-      WorkflowParser.new(client:, repo_full_name: "#{login}/#{repo_name}").language_versions
+    def workflow_parser(repo_name) #: GitHub::WorkflowParser
+      WorkflowParser.new(client:, repo_full_name: "#{login}/#{repo_name}")
     end
   end
 end
