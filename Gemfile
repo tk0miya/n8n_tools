@@ -12,6 +12,7 @@ group :development do
   gem "rbs"
   gem "rbs-inline"
   gem "rspec"
+  gem "ruboclean"
   gem "rubocop"
   gem "rubocop-numbered-params"
   gem "rubocop-rake"

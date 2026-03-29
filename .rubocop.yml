@@ -1,17 +1,16 @@
-# NOTE: Rules are sorted in ASCII order.
+---
+
+plugins:
+- rubocop-numbered-params
+- rubocop-rake
+- rubocop-rbs_inline
+- rubocop-rspec
 
 AllCops:
   NewCops: enable
   TargetRubyVersion: 4.0
   SuggestExtensions: false
 
-plugins:
-  - rubocop-numbered-params
-  - rubocop-rake
-  - rubocop-rbs_inline
-  - rubocop-rspec
-
-# Layout
 Layout/LeadingCommentSpace:
   AllowRBSInlineAnnotation: true
   AllowSteepAnnotation: true
@@ -19,22 +18,20 @@ Layout/LeadingCommentSpace:
 Layout/LineLength:
   Max: 120
 
-# Metrics
 Metrics/AbcSize:
   Max: 20
 
 Metrics/MethodLength:
   Max: 30
 
-# RSpec
 RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/MultipleExpectations:
   Enabled: false
 
 RSpec/MultipleMemoizedHelpers:
   Max: 10
-
-RSpec/MultipleExpectations:
-  Enabled: false
 
 RSpec/NamedSubject:
   Enabled: false
@@ -46,7 +43,6 @@ RSpec/SpecFilePathFormat:
   CustomTransform:
     GitHub: github
 
-# Style
 Style/Documentation:
   Enabled: false
 
