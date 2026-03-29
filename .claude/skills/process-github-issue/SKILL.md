@@ -61,6 +61,22 @@ git worktree add .claude/worktrees/issue-<number> issue-<number>-<slug>
 
 worktree 内（.claude/worktrees/issue-<number>）で作業する。
 イシューの内容に従って実装し、変更をコミットする。
+
+### git 操作の注意事項
+
+worktree 内での git 操作は `git -C` オプションを使用し、`cd` を使わずに行うこと:
+
+```
+# 良い例: git -C でパスを指定
+git -C .claude/worktrees/issue-<number> add <file>
+git -C .claude/worktrees/issue-<number> commit -m "..."
+
+# 悪い例: cd && git の組み合わせ（sandbox モードで確認が増える）
+cd .claude/worktrees/issue-<number> && git add <file>
+```
+
+また、必要な場合を除き `&&` によるコマンドの連結も避けること。
+
 コミットメッセージの末尾には必ず以下を含めること:
 
 Closes #<issue-number>
