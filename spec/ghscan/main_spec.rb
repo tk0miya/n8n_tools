@@ -65,6 +65,9 @@ RSpec.describe Ghscan::Main do
       before do
         allow(ENV).to receive(:fetch).with("GITHUB_TOKEN", nil).and_return("test-token")
         allow(GitHub::RepositoryFetcher).to receive(:new).with(client:, debug: false).and_return(fetcher)
+        allow(client).to receive(:latest_release).with("ruby/ruby").and_return(double(tag_name: "v4_0_2"))
+        allow(client).to receive(:latest_release).with("nodejs/node").and_return(double(tag_name: "v22.14.0"))
+        allow(client).to receive(:latest_release).with("python/cpython").and_return(double(tag_name: "v3.13.3"))
       end
 
       it "outputs only repositories with open PRs as JSON to stdout" do
@@ -78,6 +81,9 @@ RSpec.describe Ghscan::Main do
       before do
         allow(ENV).to receive(:fetch).with("GITHUB_TOKEN", nil).and_return("test-token")
         allow(GitHub::RepositoryFetcher).to receive(:new).with(client:, debug: false).and_return(fetcher)
+        allow(client).to receive(:latest_release).with("ruby/ruby").and_return(double(tag_name: "v4_0_2"))
+        allow(client).to receive(:latest_release).with("nodejs/node").and_return(double(tag_name: "v22.14.0"))
+        allow(client).to receive(:latest_release).with("python/cpython").and_return(double(tag_name: "v3.13.3"))
       end
 
       it "outputs an empty JSON array to stdout" do
@@ -86,25 +92,145 @@ RSpec.describe Ghscan::Main do
     end
   end
 
+  describe "#latest_language_versions" do
+    before do
+      allow(client).to receive(:latest_release).with("ruby/ruby").and_return(double(tag_name: "v4_0_2"))
+      allow(client).to receive(:latest_release).with("nodejs/node").and_return(double(tag_name: "v22.14.0"))
+      allow(client).to receive(:latest_release).with("python/cpython").and_return(double(tag_name: "v3.13.3"))
+    end
+
+    it "returns the latest major.minor version for each language" do
+      result = main.send(:latest_language_versions, client)
+      expect(result).to eq({ "ruby" => [4, 0], "node" => [22, 14], "python" => [3, 13] })
+    end
+  end
+
   describe "#filter_repositories" do
+    let(:latest_versions) { { "ruby" => [4, 0], "node" => [22, 14], "python" => [3, 13] } }
     let(:repos) do
       [
-        instance_double(GitHub::Repository, name: "repo1", pull_requests_count: 0),
-        instance_double(GitHub::Repository, name: "repo2", pull_requests_count: 2),
-        instance_double(GitHub::Repository, name: "repo3", pull_requests_count: 0),
-        instance_double(GitHub::Repository, name: "repo4", pull_requests_count: 3)
+        instance_double(GitHub::Repository, name: "repo1", pull_requests_count: 0, language_versions: {}),
+        instance_double(GitHub::Repository, name: "repo2", pull_requests_count: 2, language_versions: {}),
+        instance_double(GitHub::Repository, name: "repo3", pull_requests_count: 0, language_versions: {}),
+        instance_double(GitHub::Repository, name: "repo4", pull_requests_count: 3, language_versions: {})
       ]
     end
 
     it "returns only repositories with at least one open PR" do
-      result = main.send(:filter_repositories, repos)
+      result = main.send(:filter_repositories, repos, latest_versions)
       expect(result.map(&:name)).to eq(%w[repo2 repo4])
+    end
+
+    context "when a repository uses an outdated language version" do
+      let(:outdated_repo) do
+        instance_double(GitHub::Repository, name: "outdated",
+                                            pull_requests_count: 0, language_versions: { "ruby" => ["3.2"] })
+      end
+
+      it "includes the repository in the result" do
+        result = main.send(:filter_repositories, [outdated_repo], latest_versions)
+        expect(result.map(&:name)).to eq(["outdated"])
+      end
+    end
+
+    context "when a repository uses the latest language version" do
+      let(:current_repo) do
+        instance_double(GitHub::Repository, name: "current",
+                                            pull_requests_count: 0, language_versions: { "ruby" => ["4.0"] })
+      end
+
+      it "excludes the repository from the result" do
+        result = main.send(:filter_repositories, [current_repo], latest_versions)
+        expect(result).to be_empty
+      end
     end
 
     context "when repositories is empty" do
       it "returns an empty array" do
-        expect(main.send(:filter_repositories, [])).to eq([])
+        expect(main.send(:filter_repositories, [], latest_versions)).to eq([])
       end
+    end
+  end
+
+  describe "#outdated_language_version?" do
+    let(:latest_versions) { { "ruby" => [4, 0] } }
+
+    context "when all versions are older than the latest" do
+      let(:repo) do
+        instance_double(GitHub::Repository, language_versions: { "ruby" => ["3.2"] })
+      end
+
+      it "returns true" do
+        expect(main.send(:outdated_language_version?, repo, latest_versions)).to be true
+      end
+    end
+
+    context "when the version matches the latest" do
+      let(:repo) do
+        instance_double(GitHub::Repository, language_versions: { "ruby" => ["4.0"] })
+      end
+
+      it "returns false" do
+        expect(main.send(:outdated_language_version?, repo, latest_versions)).to be false
+      end
+    end
+
+    context "when the version is newer than the latest" do
+      let(:repo) do
+        instance_double(GitHub::Repository, language_versions: { "ruby" => ["4.1"] })
+      end
+
+      it "returns false" do
+        expect(main.send(:outdated_language_version?, repo, latest_versions)).to be false
+      end
+    end
+
+    context "when versions include both outdated and latest" do
+      let(:repo) do
+        instance_double(GitHub::Repository, language_versions: { "ruby" => ["3.2", "4.0"] })
+      end
+
+      it "returns false" do
+        expect(main.send(:outdated_language_version?, repo, latest_versions)).to be false
+      end
+    end
+
+    context "when language_versions is empty" do
+      let(:repo) do
+        instance_double(GitHub::Repository, language_versions: {})
+      end
+
+      it "returns false" do
+        expect(main.send(:outdated_language_version?, repo, latest_versions)).to be false
+      end
+    end
+
+    context "when the language is not in latest_versions" do
+      let(:repo) do
+        instance_double(GitHub::Repository, language_versions: { "go" => ["1.22"] })
+      end
+
+      it "returns false" do
+        expect(main.send(:outdated_language_version?, repo, latest_versions)).to be false
+      end
+    end
+  end
+
+  describe "#minor_version" do
+    it "parses major.minor format" do
+      expect(main.send(:minor_version, "3.2")).to eq([3, 2])
+    end
+
+    it "parses major.minor.patch format" do
+      expect(main.send(:minor_version, "3.2.1")).to eq([3, 2])
+    end
+
+    it "parses major-only format as latest minor" do
+      expect(main.send(:minor_version, "18")).to eq([18, 99])
+    end
+
+    it "parses version with x wildcard as latest minor" do
+      expect(main.send(:minor_version, "20.x")).to eq([20, 99])
     end
   end
 

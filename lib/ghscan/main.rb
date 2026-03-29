@@ -6,12 +6,19 @@ require_relative "../github/repository_fetcher"
 
 module Ghscan
   class Main
+    LANGUAGE_RELEASE_REPOS = {
+      "ruby" => "ruby/ruby",
+      "node" => "nodejs/node",
+      "python" => "python/cpython"
+    }.freeze
+
     def run #: void
       debug = ARGV.include?("--debug")
       token = fetch_token
       client = build_client(token)
       fetcher = GitHub::RepositoryFetcher.new(client:, debug:)
-      puts JSON.generate(format_output(filter_repositories(fetcher.repositories)))
+      latest_versions = latest_language_versions(client)
+      puts JSON.generate(format_output(filter_repositories(fetcher.repositories, latest_versions)))
     end
 
     private
@@ -30,9 +37,41 @@ module Ghscan
       Octokit::Client.new(access_token: token, auto_paginate: true) # steep:ignore UnexpectedKeywordArgument
     end
 
+    # @rbs client: Octokit::Client
+    def latest_language_versions(client) #: Hash[String, Array[Integer]]
+      LANGUAGE_RELEASE_REPOS.transform_values do |repo|
+        tag = client.latest_release(repo).tag_name
+        parts = tag.delete_prefix("v").tr("_", ".").split(".", 3)
+        [parts[0].to_i, (parts[1] || "0").to_i]
+      end
+    end
+
     # @rbs repositories: Array[GitHub::Repository]
-    def filter_repositories(repositories) #: Array[GitHub::Repository]
-      repositories.select { _1.pull_requests_count >= 1 }
+    # @rbs latest_versions: Hash[String, Array[Integer]]
+    def filter_repositories(repositories, latest_versions) #: Array[GitHub::Repository]
+      repositories.select do |repo|
+        repo.pull_requests_count >= 1 ||
+          outdated_language_version?(repo, latest_versions)
+      end
+    end
+
+    # @rbs repo: GitHub::Repository
+    # @rbs latest_versions: Hash[String, Array[Integer]]
+    def outdated_language_version?(repo, latest_versions) #: bool
+      repo.language_versions.any? do |lang, versions|
+        latest = latest_versions[lang]
+        next false if latest.nil?
+
+        versions.none? { (minor_version(_1) <=> latest) >= 0 }
+      end
+    end
+
+    # @rbs version_string: String
+    def minor_version(version_string) #: Array[Integer]
+      parts = version_string.split(".")
+      minor_str = parts[1]
+      minor = minor_str.nil? || minor_str == "x" ? 99 : minor_str.to_i
+      [parts[0].to_i, minor]
     end
 
     # @rbs repositories: Array[GitHub::Repository]

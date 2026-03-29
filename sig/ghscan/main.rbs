@@ -2,6 +2,8 @@
 
 module Ghscan
   class Main
+    LANGUAGE_RELEASE_REPOS: untyped
+
     def run: () -> void
 
     private
@@ -11,8 +13,19 @@ module Ghscan
     # @rbs token: String
     def build_client: (String token) -> Octokit::Client
 
+    # @rbs client: Octokit::Client
+    def latest_language_versions: (Octokit::Client client) -> Hash[String, Array[Integer]]
+
     # @rbs repositories: Array[GitHub::Repository]
-    def filter_repositories: (Array[GitHub::Repository] repositories) -> Array[GitHub::Repository]
+    # @rbs latest_versions: Hash[String, Array[Integer]]
+    def filter_repositories: (Array[GitHub::Repository] repositories, Hash[String, Array[Integer]] latest_versions) -> Array[GitHub::Repository]
+
+    # @rbs repo: GitHub::Repository
+    # @rbs latest_versions: Hash[String, Array[Integer]]
+    def outdated_language_version?: (GitHub::Repository repo, Hash[String, Array[Integer]] latest_versions) -> bool
+
+    # @rbs version_string: String
+    def minor_version: (String version_string) -> Array[Integer]
 
     # @rbs repositories: Array[GitHub::Repository]
     def format_output: (Array[GitHub::Repository] repositories) -> Array[Hash[String, untyped]]
