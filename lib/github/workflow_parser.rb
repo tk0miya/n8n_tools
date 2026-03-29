@@ -78,11 +78,10 @@ module GitHub
       return {} unless matrix.is_a?(Hash)
 
       result = {} #: Hash[String, Array[String]]
-      LANGUAGE_KEYS.each_key do |lang_key|
-        values = matrix[lang_key]
+      matrix.each do |key, values|
         next unless values.is_a?(Array)
 
-        result[lang_key] = values.map(&:to_s)
+        result[key] = values.map(&:to_s)
       end
       result
     end
