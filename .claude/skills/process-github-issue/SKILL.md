@@ -48,8 +48,11 @@ gh issue edit <issue-number> --add-label "processing"
 - slug: イシュータイトルから生成（英小文字・数字・ハイフンのみ、連続ハイフンを1つに、最大 40 文字）
 - 例: issue-42-add-user-authentication
 
-# ブランチを main から作成
-git branch issue-<number>-<slug> main
+# リモートリポジトリの最新情報を取得
+git fetch origin
+
+# ブランチを origin/main から作成
+git branch issue-<number>-<slug> origin/main
 
 # worktree を作成
 git worktree add .claude/worktrees/issue-<number> issue-<number>-<slug>
