@@ -8,7 +8,7 @@ RSpec.describe GitHub::WorkflowParser do
 
   let(:client) { instance_double(Octokit::Client) }
 
-  describe "#uses_actionlint?" do
+  describe "#no_actionlint?" do
     context "when .github/workflows/ does not exist" do
       before do
         allow(client).to receive(:contents)
@@ -17,7 +17,7 @@ RSpec.describe GitHub::WorkflowParser do
       end
 
       it "returns false" do
-        expect(parser.uses_actionlint?).to be false
+        expect(parser.no_actionlint?).to be false
       end
     end
 
@@ -43,8 +43,8 @@ RSpec.describe GitHub::WorkflowParser do
           .and_return(file_entry)
       end
 
-      it "returns true" do
-        expect(parser.uses_actionlint?).to be true
+      it "returns false" do
+        expect(parser.no_actionlint?).to be false
       end
     end
 
@@ -70,8 +70,8 @@ RSpec.describe GitHub::WorkflowParser do
           .and_return(file_entry)
       end
 
-      it "returns true" do
-        expect(parser.uses_actionlint?).to be true
+      it "returns false" do
+        expect(parser.no_actionlint?).to be false
       end
     end
 
@@ -97,8 +97,8 @@ RSpec.describe GitHub::WorkflowParser do
           .and_return(file_entry)
       end
 
-      it "returns false" do
-        expect(parser.uses_actionlint?).to be false
+      it "returns true" do
+        expect(parser.no_actionlint?).to be true
       end
     end
 
@@ -138,8 +138,8 @@ RSpec.describe GitHub::WorkflowParser do
           .and_return(double(content: Base64.encode64(lint_content)))
       end
 
-      it "returns true" do
-        expect(parser.uses_actionlint?).to be true
+      it "returns false" do
+        expect(parser.no_actionlint?).to be false
       end
     end
   end
