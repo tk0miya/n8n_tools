@@ -12,6 +12,17 @@ interface _OctokitRepo
   def name: () -> String
   def updated_at: () -> Time
   def default_branch: () -> String
+  def archived: () -> bool
+  def fork: () -> bool
+  def pushed_at: () -> Time
+end
+
+interface _OctokitRelease
+  def tag_name: () -> String
+end
+
+interface _OctokitTag
+  def name: () -> String
 end
 
 interface _OctokitWorkflowRun
@@ -24,13 +35,9 @@ interface _OctokitWorkflowRuns
 end
 
 module Octokit
-  class NotFound < StandardError
-  end
-
   class Client
-    def initialize: (?access_token: String) -> void
-
-    def user: () -> _OctokitUser
+    def user: (?(Integer | String) user, ?Hash[untyped, untyped] options) -> _OctokitUser
+            | ...
 
     def repos: (String, ?type: String) -> Array[_OctokitRepo]
 
@@ -40,5 +47,8 @@ module Octokit
 
     def contents: (String, ?path: String) -> untyped
 
+    def latest_release: (String) -> _OctokitRelease
+
+    def tags: (String) -> Array[_OctokitTag]
   end
 end

@@ -8,7 +8,7 @@ RSpec::Core::RakeTask.new(:spec)
 
 task default: :ci
 
-task ci: %i[ruboclean rubocop spec steep]
+task ci: %i[ruboclean rubocop spec rbs:validate steep]
 
 desc "Check .rubocop.yml is sorted in ASCII order"
 task :ruboclean do
@@ -19,6 +19,11 @@ namespace :rbs do
   desc "Generate RBS files"
   task :generate do
     sh "rbs-inline", "--opt-out", "--output=sig", "lib"
+  end
+
+  desc "Validate RBS files"
+  task :validate do
+    sh "rbs", "-Isig", "validate"
   end
 end
 
