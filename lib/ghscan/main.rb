@@ -73,7 +73,7 @@ module Ghscan
         latest = latest_versions[lang]
         next false if latest.nil?
 
-        versions.none? { (minor_version(_1) <=> latest) >= 0 }
+        versions.none? { (minor_version(_1) <=> latest)&.>=(0) }
       end
     end
 

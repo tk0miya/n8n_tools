@@ -10,4 +10,5 @@ if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
   echo 'eval "$(rbenv init - bash)"' >> "$CLAUDE_ENV_FILE"
   echo 'export RUBYOPT="-rcgi"' >> "$CLAUDE_ENV_FILE"
   RUBYOPT="-rcgi" bundle install
+  bundle exec rbs collection install
 fi

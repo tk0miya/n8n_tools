@@ -19,5 +19,8 @@ jobs:
           ruby-version: "4.0"
           bundler-cache: true
 
+      - name: Install RBS collection
+        run: bundle exec rbs collection install
+
       - name: Run CI
         run: bundle exec rake ci
