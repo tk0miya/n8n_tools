@@ -113,11 +113,13 @@ test/
 
 **ゴール**: ghscan 全体が TS で動作する
 
-- [ ] `src/ghscan/main.ts` — メインロジック
-  - `filterRepositories`, `outdatedLanguageVersion`, `minorVersion`, `formatOutput` はテスト容易性のため export する関数として切り出す
-  - JSON 出力のキーは `snake_case` を維持 (後方互換性)
-- [ ] `src/cli.ts` — エントリポイント: `new Main().run()`
-- [ ] `test/ghscan/main.test.ts` — `spec/ghscan/main_spec.rb` から移植
+- [x] `src/ghscan/main.ts` — メインロジック
+  - クラスではなく純粋関数ベース (`run`, `filterRepositories`, `hasOutdatedLanguageVersion`, `parseMinorVersion` を export)
+  - `Map<string, VersionTuple>` で型安全なバージョン管理 (Ruby の `Hash[String, Array[Integer]]` 相当)
+  - `Promise.all` でリポジトリ取得と言語バージョン取得を並行実行
+  - JSON 出力は `Repository` 型をそのまま `JSON.stringify` で出力
+- [x] `src/cli.ts` — エントリポイント: `run({ debug })` を呼び出すだけの薄いラッパー
+- [x] `test/ghscan/main.test.ts` — `spec/ghscan/main_spec.rb` から移植
 
 **検証**:
 - `npm run ci` (lint + test + build) が全て通る
@@ -153,7 +155,7 @@ test/
 - **Octokit API の差異**: Ruby gem と @octokit/rest はメソッド名・レスポンス形状が異なる。各 API 呼び出しを個別にマッピングする必要あり
 - **全面 async 化**: Ruby は同期コード。TS では `@octokit/rest` が Promise を返すため、`WorkflowParser` → `RepositoryFetcher` → `Main.run()` まで全て async/await が必要
 - **YAML 数値変換**: `js-yaml` はデフォルトで `3.10` を float `3.1` に変換する。`String(value)` で明示的に文字列化するか、`yaml.JSON_SCHEMA` を使う
-- **JSON 出力互換性**: 出力キーは `snake_case` を維持して後方互換を保つ
+- **JSON 出力**: `Repository` 型をそのまま出力 (未稼働のため後方互換不要)
 
 ## 最終検証
 
