@@ -3,4 +3,5 @@
 /.claude/settings.local.json
 /.claude/worktrees/
 /.gem_rbs_collection/
+/node_modules/
 /vendor/bundle/

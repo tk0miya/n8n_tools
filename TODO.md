@@ -47,26 +47,26 @@ test/
 
 **ゴール**: `npm run build` が通り、空の `npm test` / `npm run lint` が成功する状態
 
-- [ ] `package.json` 作成
+- [x] `package.json` 作成
   - `type: "module"` (ESM)
   - `bin: { "ghscan": "./dist/ghscan.mjs" }`
   - dependencies: `@octokit/rest`, `js-yaml`
   - devDependencies: `typescript`, `esbuild`, `vitest`, `@biomejs/biome`, `@types/js-yaml`
   - scripts: `build`, `test`, `lint`, `lint:fix`, `ci` (`lint && test && build`)
-- [ ] `tsconfig.json` 作成 — `target: ES2022`, `module: Node16`, `strict: true`
-- [ ] `biome.json` 作成 — `npx @biomejs/biome init` で生成後、indent 2 spaces, line width 120 等に編集
-- [ ] `.gitignore` 更新 — `node_modules/` 追加 (`dist/` はコミット対象のため ignore しない)
-- [ ] 最小限の `src/cli.ts` 作成 — ビルドが通ることを確認
-- [ ] CI を TS 用に書き換え
-  - `.github/workflows/ci.yml`: Ruby setup → `actions/setup-node@v4` (Node 22, `cache: "npm"`)
+- [x] `tsconfig.json` 作成 — `target: ES2022`, `module: Node16`, `strict: true`
+- [x] `biome.json` 作成 — `npx @biomejs/biome init` で生成後、indent 2 spaces, line width 120 等に編集
+- [x] `.gitignore` 更新 — `node_modules/` 追加 (`dist/` はコミット対象のため ignore しない)
+- [x] 最小限の `src/cli.ts` 作成 — ビルドが通ることを確認
+- [x] CI を TS 用に書き換え
+  - `.github/workflows/ci.yml`: Ruby setup → `actions/setup-node@v6` (Node 24, `cache: "npm"`)
   - `bundle exec rake ci` → `npm ci && npm run ci`
   - ビルド済みファイル整合性チェック: `npm run build && git diff --exit-code dist/`
   - `.github/dependabot.yml`: `bundler` に加えて `npm` エコシステムを追加
-- [ ] Claude Code hooks を TS 用に書き換え
+- [x] Claude Code hooks を TS 用に書き換え
   - `pre-commit-check.sh` → `npm run lint && npm test && npm run build` を実行するよう書き換え
   - `claude-code-web-session-start.sh` → rbenv セットアップを `npm ci` に書き換え
   - `.claude/settings.json` の permissions に `npmjs.com`, `registry.npmjs.org` を追加
-- [ ] `.vscode/` 更新
+- [x] `.vscode/` 更新
   - `extensions.json`: `biomejs.biome` を追加
   - `settings.json`: TypeScript 用の Biome formatter 設定を追加
 

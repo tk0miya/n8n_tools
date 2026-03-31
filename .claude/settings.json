@@ -4,6 +4,8 @@
       "WebFetch(domain:index.rubygems.org)",
       "WebFetch(domain:rubygems.org)",
       "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:npmjs.com)",
+      "WebFetch(domain:registry.npmjs.org)",
       "Bash(git:*)",
       "Bash(gh:*)"
     ]
