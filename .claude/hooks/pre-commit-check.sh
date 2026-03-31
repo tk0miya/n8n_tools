@@ -12,20 +12,20 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
-if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
-  eval "$(rbenv init - bash)"
-fi
-
 echo "Running pre-commit checks..." >&2
 
-# Generate RBS and run all checks
-if ! bundle exec rbs-inline --opt-out --output=sig/ lib/ >&2; then
-    echo "Error: RBS generation failed" >&2
+if ! npm run lint >&2; then
+    echo "Error: lint failed" >&2
     exit 2
 fi
 
-if ! bundle exec rake >&2; then
-    echo "Error: rake checks failed" >&2
+if ! npm test >&2; then
+    echo "Error: tests failed" >&2
+    exit 2
+fi
+
+if ! npm run build >&2; then
+    echo "Error: build failed" >&2
     exit 2
 fi
 

@@ -13,14 +13,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
-          ruby-version: "4.0"
-          bundler-cache: true
+          node-version: "24"
+          cache: "npm"
 
-      - name: Install RBS collection
-        run: bundle exec rbs collection install
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run CI
-        run: bundle exec rake ci
+        run: npm run ci
+
+      - name: Check dist/ is up to date
+        run: npm run build && git diff --exit-code dist/
