@@ -26,20 +26,3 @@ jobs:
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
-  rbs_collection:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'rbs-collection-updater[bot]' && github.repository == 'tk0miya/n8n_tools'
-    steps:
-      - uses: actions/create-github-app-token@v3
-        id: app-token
-        with:
-          app-id: ${{ vars.PR_AUTO_MERGER_APP_ID }}
-          private-key: ${{ secrets.PR_AUTO_MERGER_PRIVATE_KEY }}
-      - name: Approve a PR
-        run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --auto --merge "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
