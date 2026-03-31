@@ -6737,7 +6737,18 @@ async function fetchPullRequestCount(client, owner, repo) {
 async function run({ debug: debug2 = false } = {}) {
   const token = requireToken();
   const { Octokit: Octokit3 } = await Promise.resolve().then(() => (init_dist_src5(), dist_src_exports));
-  const client = new Octokit3({ auth: token });
+  const client = new Octokit3({
+    auth: token,
+    log: {
+      debug: () => {
+      },
+      info: () => {
+      },
+      warn: console.warn,
+      error: () => {
+      }
+    }
+  });
   const [repositories, latestVersions] = await Promise.all([
     fetchRepositories(client, { debug: debug2 }),
     fetchLatestLanguageVersions(client)

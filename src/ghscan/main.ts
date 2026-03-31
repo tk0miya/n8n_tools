@@ -12,7 +12,15 @@ export interface RunOptions {
 export async function run({ debug = false }: RunOptions = {}): Promise<void> {
   const token = requireToken();
   const { Octokit } = await import("@octokit/rest");
-  const client = new Octokit({ auth: token });
+  const client = new Octokit({
+    auth: token,
+    log: {
+      debug: () => {},
+      info: () => {},
+      warn: console.warn,
+      error: () => {},
+    },
+  });
 
   const [repositories, latestVersions] = await Promise.all([
     fetchRepositories(client, { debug }),
