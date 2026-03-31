@@ -81,12 +81,12 @@ test/
 
 **ゴール**: workflowParser の TS 実装が存在し、テストが通る
 
-- [ ] `src/github/repository.ts` — `interface Repository` として定義
-- [ ] `src/github/workflowParser.ts` — YAML パース、matrix 参照解決、actionlint 検出
+- [x] `src/github/repository.ts` — `interface Repository` として定義
+- [x] `src/github/workflowParser.ts` — YAML パース、matrix 参照解決、actionlint 検出
   - `Base64.decode64` → `Buffer.from(content, "base64").toString("utf-8")`
   - `Octokit::NotFound` → `error.status === 404` で判定
   - YAML の数値自動変換に注意: `3.10` が `3.1` にならないよう `String(value)` で変換
-- [ ] `test/github/workflowParser.test.ts` — `spec/github/workflow_parser_spec.rb` から移植
+- [x] `test/github/workflowParser.test.ts` — `spec/github/workflow_parser_spec.rb` から移植
 
 **検証**: `npm test` でテスト通過、`npm run lint` で lint 通過
 
