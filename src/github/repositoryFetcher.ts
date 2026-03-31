@@ -1,3 +1,4 @@
+import { RequestError } from "@octokit/request-error";
 import type { Octokit } from "@octokit/rest";
 import type { Repository } from "./repository.js";
 import { analyzeWorkflows } from "./workflowParser.js";
@@ -51,6 +52,13 @@ async function buildRepository(client: Octokit, login: string, repo: OctokitRepo
 }
 
 async function fetchPullRequestCount(client: Octokit, owner: string, repo: string): Promise<number> {
-  const pulls = await client.rest.pulls.list({ owner, repo, state: "open" });
-  return pulls.data.length;
+  try {
+    const pulls = await client.rest.pulls.list({ owner, repo, state: "open" });
+    return pulls.data.length;
+  } catch (error: unknown) {
+    if (error instanceof RequestError && (error.status === 403 || error.status === 404)) {
+      return 0;
+    }
+    throw error;
+  }
 }

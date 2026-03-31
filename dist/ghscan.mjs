@@ -3926,6 +3926,9 @@ function parseTagToVersion(tag) {
   return [Number(parts[0]), Number(parts[1] ?? 0)];
 }
 
+// src/github/repositoryFetcher.ts
+init_dist_src();
+
 // src/github/workflowParser.ts
 init_dist_src();
 
@@ -6719,8 +6722,15 @@ async function buildRepository(client, login, repo) {
   };
 }
 async function fetchPullRequestCount(client, owner, repo) {
-  const pulls = await client.rest.pulls.list({ owner, repo, state: "open" });
-  return pulls.data.length;
+  try {
+    const pulls = await client.rest.pulls.list({ owner, repo, state: "open" });
+    return pulls.data.length;
+  } catch (error) {
+    if (error instanceof RequestError && (error.status === 403 || error.status === 404)) {
+      return 0;
+    }
+    throw error;
+  }
 }
 
 // src/ghscan/main.ts

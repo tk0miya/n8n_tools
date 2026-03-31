@@ -1,3 +1,4 @@
+import { RequestError } from "@octokit/request-error";
 import { describe, expect, it, vi } from "vitest";
 import { fetchRepositories, isActiveRepo } from "@/github/repositoryFetcher.js";
 
@@ -115,6 +116,19 @@ describe("fetchRepositories", () => {
 
     const result = await fetchRepositories(client);
     expect(result[0]?.languageVersions).toEqual({ ruby: ["3.1", "3.2"] });
+  });
+
+  it("returns 0 pull request count when access is forbidden (403)", async () => {
+    const repos = [fakeRepo({ name: "repo1", html_url: "https://github.com/testuser/repo1" })];
+    const client = buildClient({ repos });
+    vi.mocked(client.rest.pulls.list as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new RequestError("Resource not accessible by personal access token", 403, {
+        request: { method: "GET", url: "", headers: {} },
+      }),
+    );
+
+    const result = await fetchRepositories(client);
+    expect(result[0]?.pullRequestsCount).toBe(0);
   });
 
   it("fetches PR count and workflows concurrently per repo", async () => {
