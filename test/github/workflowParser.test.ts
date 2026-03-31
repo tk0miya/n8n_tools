@@ -197,6 +197,16 @@ describe("fetchWorkflowFiles", () => {
     expect(files).toEqual([]);
   });
 
+  it("returns empty array when access is forbidden (403)", async () => {
+    const getContent = vi.fn().mockRejectedValue(
+      new RequestError("Resource not accessible by personal access token", 403, {
+        request: { method: "GET", url: "", headers: {} },
+      }),
+    );
+    const files = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
+    expect(files).toEqual([]);
+  });
+
   it("returns empty array when directory is empty", async () => {
     const getContent = vi.fn().mockResolvedValue({ data: [] });
     const files = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");

@@ -6597,7 +6597,7 @@ async function fetchWorkflowFiles(client, repoFullName) {
     }
     return results;
   } catch (error) {
-    if (error instanceof RequestError && error.status === 404) {
+    if (error instanceof RequestError && (error.status === 403 || error.status === 404)) {
       return [];
     }
     throw error;

@@ -56,7 +56,7 @@ export async function fetchWorkflowFiles(client: Octokit, repoFullName: string):
     }
     return results;
   } catch (error: unknown) {
-    if (error instanceof RequestError && error.status === 404) {
+    if (error instanceof RequestError && (error.status === 403 || error.status === 404)) {
       return [];
     }
     throw error;
