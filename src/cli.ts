@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { run } from "./ghscan/main.js";
 
 const debug = process.argv.includes("--debug");
