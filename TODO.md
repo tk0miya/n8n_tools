@@ -96,10 +96,14 @@ test/
 
 **ゴール**: repositoryFetcher の TS 実装が存在し、テストが通る
 
-- [ ] `src/github/repositoryFetcher.ts` — リポジトリ取得・フィルタリング
+- [x] `src/github/repositoryFetcher.ts` — リポジトリ取得・フィルタリング
   - `client.repos(login, type: "owner")` → `octokit.paginate(octokit.rest.repos.listForAuthenticatedUser, { type: "owner" })`
   - 全メソッドが `async` になる
-- [ ] `test/github/repositoryFetcher.test.ts` — `spec/github/repository_fetcher_spec.rb` から移植
+  - クラスではなく関数ベース (workflowParser と同様の TS イディオム)
+  - `Promise.all` でリポジトリごとの PR 取得とワークフロー解析を並行実行
+  - Octokit レスポンス型から `OctokitRepo` 型を推論で導出 (`Awaited<ReturnType<...>>`)
+  - フィルタリングを純粋関数 `isActiveRepo` として export (単体テスト可能)
+- [x] `test/github/repositoryFetcher.test.ts` — `spec/github/repository_fetcher_spec.rb` から移植
 
 **検証**: `npm test` で全テスト通過
 

@@ -1,7 +1,7 @@
 import { RequestError } from "@octokit/request-error";
 import dedent from "dedent";
 import { describe, expect, it, vi } from "vitest";
-import { analyzeWorkflowFiles, fetchWorkflowFiles } from "../../src/github/workflowParser.js";
+import { analyzeWorkflowFiles, fetchWorkflowFiles } from "@/github/workflowParser.js";
 
 function encode(content: string): string {
   return Buffer.from(content).toString("base64");
