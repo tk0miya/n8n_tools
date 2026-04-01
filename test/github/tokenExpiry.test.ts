@@ -14,6 +14,11 @@ describe("parseExpirationHeader", () => {
     expect(result).toEqual(new Date("2025-12-31T23:59:59Z"));
   });
 
+  it("parses header with timezone offset", () => {
+    const result = parseExpirationHeader("2027-03-31 00:00:00 +0900");
+    expect(result).toEqual(new Date("2027-03-31T00:00:00+0900"));
+  });
+
   it("throws on invalid header format", () => {
     expect(() => parseExpirationHeader("not-a-date")).toThrow("Failed to parse token expiration header");
   });
