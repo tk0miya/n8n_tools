@@ -6753,7 +6753,8 @@ async function run({ debug: debug2 = false } = {}) {
     fetchRepositories(client, { debug: debug2 }),
     fetchLatestLanguageVersions(client)
   ]);
-  const filtered = filterRepositories(repositories, latestVersions);
+  const results = repositories.map((repo) => toScanResult(repo, latestVersions));
+  const filtered = filterScanResults(results);
   console.log(JSON.stringify(filtered));
 }
 function requireToken() {
@@ -6764,17 +6765,30 @@ function requireToken() {
   }
   return token;
 }
-function filterRepositories(repositories, latestVersions) {
-  return repositories.filter(
-    (repo) => repo.pullRequestsCount >= 1 || hasOutdatedLanguageVersion(repo, latestVersions) || repo.noActionlint
+function toScanResult(repo, latestVersions) {
+  return {
+    name: repo.name,
+    url: repo.url,
+    pullRequestsCount: repo.pullRequestsCount,
+    outdatedLanguages: detectOutdatedLanguages(repo, latestVersions),
+    noActionlint: repo.noActionlint
+  };
+}
+function filterScanResults(results) {
+  return results.filter(
+    (result) => result.pullRequestsCount >= 1 || result.outdatedLanguages.length > 0 || result.noActionlint
   );
 }
-function hasOutdatedLanguageVersion(repo, latestVersions) {
-  return Object.entries(repo.languageVersions).some(([lang, versions]) => {
+function detectOutdatedLanguages(repo, latestVersions) {
+  const result = [];
+  for (const [lang, versions] of Object.entries(repo.languageVersions)) {
     const latest = latestVersions.get(lang);
-    if (!latest) return false;
-    return versions.every((v) => compareVersions(parseMinorVersion(v), latest) < 0);
-  });
+    if (!latest) continue;
+    if (versions.every((v) => compareVersions(parseMinorVersion(v), latest) < 0)) {
+      result.push(lang);
+    }
+  }
+  return result;
 }
 function parseMinorVersion(versionString) {
   const [majorStr, minorStr] = versionString.split(".");
