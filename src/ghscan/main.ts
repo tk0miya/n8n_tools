@@ -5,6 +5,14 @@ import { fetchRepositories } from "../github/repositoryFetcher.js";
 
 // ── Public API ──────────────────────────────────────────────
 
+export interface ScanResult {
+  name: string;
+  url: string;
+  pullRequestsCount: number;
+  outdatedLanguages: string[];
+  noActionlint: boolean;
+}
+
 export interface RunOptions {
   debug?: boolean;
 }
@@ -27,7 +35,8 @@ export async function run({ debug = false }: RunOptions = {}): Promise<void> {
     fetchLatestLanguageVersions(client),
   ]);
 
-  const filtered = filterRepositories(repositories, latestVersions);
+  const results = repositories.map((repo) => toScanResult(repo, latestVersions));
+  const filtered = filterScanResults(results);
   console.log(JSON.stringify(filtered));
 }
 
@@ -42,26 +51,41 @@ function requireToken(): string {
   return token;
 }
 
+// ── Transformation ─────────────────────────────────────────
+
+export function toScanResult(repo: Repository, latestVersions: ReadonlyMap<string, VersionTuple>): ScanResult {
+  return {
+    name: repo.name,
+    url: repo.url,
+    pullRequestsCount: repo.pullRequestsCount,
+    outdatedLanguages: detectOutdatedLanguages(repo, latestVersions),
+    noActionlint: repo.noActionlint,
+  };
+}
+
 // ── Filtering ───────────────────────────────────────────────
 
-export function filterRepositories(
-  repositories: readonly Repository[],
-  latestVersions: ReadonlyMap<string, VersionTuple>,
-): Repository[] {
-  return repositories.filter(
-    (repo) => repo.pullRequestsCount >= 1 || hasOutdatedLanguageVersion(repo, latestVersions) || repo.noActionlint,
+export function filterScanResults(results: readonly ScanResult[]): ScanResult[] {
+  return results.filter(
+    (result) => result.pullRequestsCount >= 1 || result.outdatedLanguages.length > 0 || result.noActionlint,
   );
 }
 
-export function hasOutdatedLanguageVersion(
+// ── Version checking ───────────────────────────────────────
+
+export function detectOutdatedLanguages(
   repo: Pick<Repository, "languageVersions">,
   latestVersions: ReadonlyMap<string, VersionTuple>,
-): boolean {
-  return Object.entries(repo.languageVersions).some(([lang, versions]) => {
+): string[] {
+  const result: string[] = [];
+  for (const [lang, versions] of Object.entries(repo.languageVersions)) {
     const latest = latestVersions.get(lang);
-    if (!latest) return false;
-    return versions.every((v) => compareVersions(parseMinorVersion(v), latest) < 0);
-  });
+    if (!latest) continue;
+    if (versions.every((v) => compareVersions(parseMinorVersion(v), latest) < 0)) {
+      result.push(lang);
+    }
+  }
+  return result;
 }
 
 export function parseMinorVersion(versionString: string): VersionTuple {
