@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { run } from "./ghscan/main.js";
+import { run } from "./main.js";
 
 const debug = process.argv.includes("--debug");
 run({ debug }).catch((error) => {
