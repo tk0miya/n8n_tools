@@ -4357,7 +4357,8 @@ async function fetchTokenExpiry(client) {
   return parseExpirationHeader(expirationHeader);
 }
 function parseExpirationHeader(header) {
-  const date = new Date(header.replace(" UTC", "Z").replace(" ", "T"));
+  const normalized = header.replace(" UTC", "Z").replace(/ ([+-]\d{4})$/, "$1").replace(" ", "T");
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) {
     throw new Error(`Failed to parse token expiration header: ${header}`);
   }
