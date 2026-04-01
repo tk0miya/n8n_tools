@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "bin": {
-    "ghscan": "./dist/ghscan.mjs"
+    "ghscan": "./dist/ghscan.mjs",
+    "ghtoken": "./dist/ghtoken.mjs"
   },
   "scripts": {
-    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=dist/ghscan.mjs --banner:js='#!/usr/bin/env node\nimport{createRequire}from\"node:module\";const require=createRequire(import.meta.url);' --alias:@=./src",
+    "build": "esbuild src/ghscan/cli.ts --bundle --platform=node --format=esm --outfile=dist/ghscan.mjs --banner:js='#!/usr/bin/env node\nimport{createRequire}from\"node:module\";const require=createRequire(import.meta.url);' --alias:@=./src && esbuild src/check-token/cli.ts --bundle --platform=node --format=esm --outfile=dist/ghtoken.mjs --banner:js='#!/usr/bin/env node\nimport{createRequire}from\"node:module\";const require=createRequire(import.meta.url);' --alias:@=./src",
     "test": "vitest run --passWithNoTests",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
