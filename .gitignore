@@ -2,4 +2,5 @@
 
 /.claude/settings.local.json
 /.claude/worktrees/
+/.env
 /node_modules/
