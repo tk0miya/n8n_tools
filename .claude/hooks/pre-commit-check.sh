@@ -19,6 +19,11 @@ if ! npm run lint >&2; then
     exit 2
 fi
 
+if ! npm run typecheck >&2; then
+    echo "Error: typecheck failed" >&2
+    exit 2
+fi
+
 if ! npm test >&2; then
     echo "Error: tests failed" >&2
     exit 2
