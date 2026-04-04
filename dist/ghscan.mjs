@@ -4354,10 +4354,12 @@ var LANGUAGE_RELEASE_REPOS = /* @__PURE__ */ new Map([
   ["python", "python/cpython"]
 ]);
 var STABLE_TAG_RE = /^v?\d+\.\d+[._]\d+$/;
+var LTS_EVEN_MAJOR_LANGUAGES = /* @__PURE__ */ new Set(["node"]);
 async function fetchLatestLanguageVersions(client) {
   const entries = await Promise.all(
     [...LANGUAGE_RELEASE_REPOS].map(async ([lang, repo]) => {
-      const tag = await fetchLatestReleaseTag(client, repo);
+      const ltsOnly = LTS_EVEN_MAJOR_LANGUAGES.has(lang);
+      const tag = ltsOnly ? await fetchLatestLtsTag(client, repo) : await fetchLatestReleaseTag(client, repo);
       return [lang, parseTagToVersion(tag)];
     })
   );
@@ -4378,6 +4380,17 @@ async function fetchLatestReleaseTag(client, repoFullName) {
     if (!stable) throw new Error(`No stable release found for ${repoFullName}`);
     return stable.name;
   }
+}
+async function fetchLatestLtsTag(client, repoFullName) {
+  const { owner, repo } = splitRepo(repoFullName);
+  const { data: tags } = await client.rest.repos.listTags({ owner, repo, per_page: 100 });
+  const lts = tags.find((t) => {
+    if (!STABLE_TAG_RE.test(t.name)) return false;
+    const major = Number(t.name.replace(/^v/, "").split(/[._]/)[0]);
+    return major % 2 === 0;
+  });
+  if (!lts) throw new Error(`No LTS release found for ${repoFullName}`);
+  return lts.name;
 }
 function parseTagToVersion(tag) {
   const parts = tag.replace(/^v/, "").replace(/_/g, ".").split(".", 3);
