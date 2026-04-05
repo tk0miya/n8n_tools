@@ -2,6 +2,16 @@
 import { parseArgs as nodeParseArgs } from "node:util";
 import { MediaPlayer, Scanner } from "castv2-player";
 import { getAllAudioUrls } from "google-tts-api";
+var silentLogger = {
+  error: () => {
+  },
+  warn: () => {
+  },
+  info: () => {
+  },
+  debug: () => {
+  }
+};
 function parseArgs(argv) {
   const { values, positionals } = nodeParseArgs({
     args: argv.slice(2),
@@ -24,7 +34,7 @@ function filterDevices(devices, nameFilter) {
   return devices.filter((d) => d.name.toLowerCase().includes(lower));
 }
 function discoverDevices(timeoutMs = 5e3) {
-  const ScannerClass = Scanner();
+  const ScannerClass = Scanner(silentLogger);
   return new Promise((resolve) => {
     const devices = [];
     const scanner = new ScannerClass(
@@ -40,7 +50,7 @@ function discoverDevices(timeoutMs = 5e3) {
   });
 }
 async function speakText(device, text) {
-  const MediaPlayerClass = MediaPlayer();
+  const MediaPlayerClass = MediaPlayer(silentLogger);
   const connection = {
     id: device.host,
     name: device.name,
@@ -106,7 +116,9 @@ async function run(options) {
 }
 
 // src/google-home/cli.ts
-run(parseArgs(process.argv)).catch((error) => {
+run(parseArgs(process.argv)).then(() => {
+  process.exit(0);
+}).catch((error) => {
   console.error(error);
   process.exit(1);
 });

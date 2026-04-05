@@ -3,6 +3,13 @@ import type { Device } from "castv2-player";
 import { MediaPlayer, Scanner } from "castv2-player";
 import { getAllAudioUrls } from "google-tts-api";
 
+const silentLogger = {
+  error: () => {},
+  warn: () => {},
+  info: () => {},
+  debug: () => {},
+};
+
 export interface RunOptions {
   text?: string;
   device?: string;
@@ -42,7 +49,7 @@ export function filterDevices(devices: DeviceInfo[], nameFilter: string): Device
 }
 
 export function discoverDevices(timeoutMs = 5000): Promise<DeviceInfo[]> {
-  const ScannerClass = Scanner();
+  const ScannerClass = Scanner(silentLogger);
   return new Promise((resolve) => {
     const devices: DeviceInfo[] = [];
     const scanner = new ScannerClass(
@@ -59,7 +66,7 @@ export function discoverDevices(timeoutMs = 5000): Promise<DeviceInfo[]> {
 }
 
 export async function speakText(device: DeviceInfo, text: string): Promise<void> {
-  const MediaPlayerClass = MediaPlayer();
+  const MediaPlayerClass = MediaPlayer(silentLogger);
 
   // Build a Device-compatible object for direct IP connections
   const connection: Device = {
