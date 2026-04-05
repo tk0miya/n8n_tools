@@ -1,4 +1,4 @@
-// src/google-home/main.ts
+// src/ghome/main.ts
 import { parseArgs as nodeParseArgs } from "node:util";
 import { MediaPlayer, Scanner } from "castv2-player";
 import { getAllAudioUrls } from "google-tts-api";
@@ -115,7 +115,7 @@ async function run(options) {
   console.log(JSON.stringify({ success: true, device: device.name, ip: device.host, text }));
 }
 
-// src/google-home/cli.ts
+// src/ghome/cli.ts
 run(parseArgs(process.argv)).then(() => {
   process.exit(0);
 }).catch((error) => {

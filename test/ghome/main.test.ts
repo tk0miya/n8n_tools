@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { DeviceInfo } from "@/google-home/main.js";
-import { filterDevices, resolveDevice } from "@/google-home/main.js";
+import type { DeviceInfo } from "@/ghome/main.js";
+import { filterDevices, resolveDevice } from "@/ghome/main.js";
 
 describe("resolveDevice", () => {
   it("returns device from --ip without discovery", async () => {
