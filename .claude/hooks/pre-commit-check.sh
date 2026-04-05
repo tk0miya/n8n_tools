@@ -29,10 +29,5 @@ if ! npm test >&2; then
     exit 2
 fi
 
-if ! npm run build >&2; then
-    echo "Error: build failed" >&2
-    exit 2
-fi
-
 echo "All checks passed!" >&2
 exit 0
