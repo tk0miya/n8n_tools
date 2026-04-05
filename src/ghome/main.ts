@@ -90,8 +90,9 @@ export async function speakText(device: DeviceInfo, text: string): Promise<void>
 }
 
 export async function resolveDevice(options: Pick<RunOptions, "ip" | "device">): Promise<DeviceInfo> {
-  if (options.ip) {
-    return { name: options.ip, host: options.ip, port: 8009, type: "unknown" };
+  const ip = options.ip ?? process.env.GHOME_IP;
+  if (ip) {
+    return { name: ip, host: ip, port: 8009, type: "unknown" };
   }
 
   const found = await discoverDevices();

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DeviceInfo } from "@/ghome/main.js";
 import { filterDevices, resolveDevice } from "@/ghome/main.js";
 
@@ -6,6 +6,26 @@ describe("resolveDevice", () => {
   it("returns device from --ip without discovery", async () => {
     const device = await resolveDevice({ ip: "192.168.1.100" });
     expect(device).toEqual({ name: "192.168.1.100", host: "192.168.1.100", port: 8009, type: "unknown" });
+  });
+
+  describe("with GHOME_IP env var", () => {
+    beforeEach(() => {
+      process.env.GHOME_IP = "192.168.1.200";
+    });
+
+    afterEach(() => {
+      delete process.env.GHOME_IP;
+    });
+
+    it("returns device from GHOME_IP when --ip is not specified", async () => {
+      const device = await resolveDevice({});
+      expect(device).toEqual({ name: "192.168.1.200", host: "192.168.1.200", port: 8009, type: "unknown" });
+    });
+
+    it("prefers --ip over GHOME_IP", async () => {
+      const device = await resolveDevice({ ip: "192.168.1.100" });
+      expect(device).toEqual({ name: "192.168.1.100", host: "192.168.1.100", port: 8009, type: "unknown" });
+    });
   });
 });
 

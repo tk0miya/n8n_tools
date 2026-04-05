@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { parseArgs, run } from "./main.js";
 
 run(parseArgs(process.argv))
