@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeDaysUntilExpiry, toCheckTokenResult } from "@/check-token/main.js";
+import { computeDaysUntilExpiry, toCheckTokenResult } from "@/ghtoken/main.js";
 
 // ── toCheckTokenResult ────────────────────────────────────
 

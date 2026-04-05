@@ -4365,7 +4365,7 @@ function parseExpirationHeader(header) {
   return date;
 }
 
-// src/check-token/main.ts
+// src/ghtoken/main.ts
 async function run() {
   const token = requireToken();
   const { Octokit: Octokit3 } = await Promise.resolve().then(() => (init_dist_src5(), dist_src_exports));
@@ -4407,7 +4407,7 @@ function requireToken() {
   return token;
 }
 
-// src/check-token/cli.ts
+// src/ghtoken/cli.ts
 run().catch((error) => {
   console.error(error);
   process.exit(1);

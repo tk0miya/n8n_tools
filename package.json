@@ -11,8 +11,8 @@
   "scripts": {
     "build": "npm run build:ghscan && npm run build:ghtoken && npm run build:ghome",
     "build:ghscan": "esbuild src/ghscan/cli.ts --bundle --platform=node --format=esm --outfile=dist/ghscan.mjs --banner:js='#!/usr/bin/env node\nimport{createRequire}from\"node:module\";const require=createRequire(import.meta.url);' --alias:@=./src",
-    "build:ghtoken": "esbuild src/check-token/cli.ts --bundle --platform=node --format=esm --outfile=dist/ghtoken.mjs --banner:js='#!/usr/bin/env node\nimport{createRequire}from\"node:module\";const require=createRequire(import.meta.url);' --alias:@=./src",
-    "build:ghome": "esbuild src/google-home/cli.ts --bundle --platform=node --format=esm --outfile=dist/ghome.mjs --external:castv2-player --external:google-tts-api",
+    "build:ghtoken": "esbuild src/ghtoken/cli.ts --bundle --platform=node --format=esm --outfile=dist/ghtoken.mjs --banner:js='#!/usr/bin/env node\nimport{createRequire}from\"node:module\";const require=createRequire(import.meta.url);' --alias:@=./src",
+    "build:ghome": "esbuild src/ghome/cli.ts --bundle --platform=node --format=esm --outfile=dist/ghome.mjs --external:castv2-player --external:google-tts-api",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
