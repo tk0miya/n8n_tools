@@ -10,6 +10,7 @@ import {
   parseUsername,
   processAccount,
   requireBearerToken,
+  stripTrailingMediaUrl,
   toErrorEntry,
 } from "@/xfetch/main.js";
 import type { XfetchState } from "@/xfetch/state.js";
@@ -169,6 +170,31 @@ describe("parseUsername", () => {
   });
 });
 
+// ── stripTrailingMediaUrl ─────────────────────────────────────
+
+describe("stripTrailingMediaUrl", () => {
+  it("removes a single trailing t.co URL preceded by a space", () => {
+    expect(stripTrailingMediaUrl("hello https://t.co/AbCdEfGhIj")).toBe("hello");
+  });
+
+  it("removes only the last trailing t.co URL, preserving any URL before it", () => {
+    expect(stripTrailingMediaUrl("hello https://t.co/Abc123 https://t.co/Xyz789")).toBe("hello https://t.co/Abc123");
+  });
+
+  it("leaves text unchanged when there is no trailing t.co URL", () => {
+    expect(stripTrailingMediaUrl("no url here")).toBe("no url here");
+  });
+
+  it("leaves non-t.co URLs unchanged", () => {
+    expect(stripTrailingMediaUrl("check https://example.com")).toBe("check https://example.com");
+  });
+
+  it("handles the tweet-like pattern with hashtags before the t.co URL", () => {
+    const text = "ありがとうございました #tag1 #tag2 https://t.co/l4VXhE6yBJ";
+    expect(stripTrailingMediaUrl(text)).toBe("ありがとうございました #tag1 #tag2");
+  });
+});
+
 // ── buildPostEntry & sorting ─────────────────────────────────
 
 const sampleUser: XUser = {
@@ -255,6 +281,29 @@ describe("buildPostEntry", () => {
   it("does not modify text when there is no media", () => {
     const post = makePost("5", "2026-04-11T12:00:00.000Z", { text: "plain text", media: [] });
     expect(buildPostEntry(post, { inlineMedia: true }).text).toBe("plain text");
+  });
+
+  it("strips trailing t.co URL from text before appending inline media URLs", () => {
+    const post = makePost("6", "2026-04-11T12:00:00.000Z", {
+      text: "great pics #tag https://t.co/AbCdEfGhIj",
+      media: [{ type: "photo", url: "https://pbs.twimg.com/media/a.jpg", previewImageUrl: null, mediaKey: "k1" }],
+    });
+    expect(buildPostEntry(post, { inlineMedia: true }).text).toBe("great pics #tag\nhttps://pbs.twimg.com/media/a.jpg");
+  });
+
+  it("strips trailing t.co URL for each of multiple inline media URLs", () => {
+    const post = makePost("7", "2026-04-11T12:00:00.000Z", {
+      text: "photos #event https://t.co/AbCdEfGhIj",
+      media: [
+        { type: "photo", url: "https://pbs.twimg.com/media/a.jpg", previewImageUrl: null, mediaKey: "k1" },
+        { type: "photo", url: "https://pbs.twimg.com/media/b.jpg", previewImageUrl: null, mediaKey: "k2" },
+        { type: "photo", url: "https://pbs.twimg.com/media/c.jpg", previewImageUrl: null, mediaKey: "k3" },
+        { type: "photo", url: "https://pbs.twimg.com/media/d.jpg", previewImageUrl: null, mediaKey: "k4" },
+      ],
+    });
+    expect(buildPostEntry(post, { inlineMedia: true }).text).toBe(
+      "photos #event\nhttps://pbs.twimg.com/media/a.jpg\nhttps://pbs.twimg.com/media/b.jpg\nhttps://pbs.twimg.com/media/c.jpg\nhttps://pbs.twimg.com/media/d.jpg",
+    );
   });
 });
 
