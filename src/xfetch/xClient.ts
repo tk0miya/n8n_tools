@@ -95,17 +95,12 @@ interface RawPostsResponse {
     users?: RawUser[];
   };
   meta?: {
-    result_count?: number;
     next_token?: string;
-    newest_id?: string;
-    oldest_id?: string;
   };
-  errors?: unknown;
 }
 
 interface RawUsersResponse {
   data?: RawUser[];
-  errors?: Array<{ parameter?: string; value?: string; detail?: string }>;
 }
 
 export function normalizeProfileImageUrl(url: string | undefined | null): string | null {
