@@ -18,12 +18,6 @@ export interface XfetchState {
   accounts: Record<string, AccountState>;
 }
 
-export interface AccountRunResult {
-  username: string;
-  status: "ok" | "baseline_established" | "error";
-  newLastSeenId?: string | null;
-}
-
 export function emptyState(): XfetchState {
   return { version: STATE_VERSION, accounts: {} };
 }
@@ -68,29 +62,6 @@ export async function saveState(state: XfetchState, path: string = getDefaultSta
   const tmp = `${absolute}.tmp`;
   await writeFile(tmp, `${JSON.stringify(state, null, 2)}\n`, "utf8");
   await rename(tmp, absolute);
-}
-
-export function mergeStateAfterRun(
-  state: XfetchState,
-  results: readonly AccountRunResult[],
-  now: Date = new Date(),
-): XfetchState {
-  const nowIso = now.toISOString();
-  const accounts: Record<string, AccountState> = { ...state.accounts };
-
-  for (const result of results) {
-    if (result.status === "error") {
-      continue;
-    }
-    const key = result.username.toLowerCase();
-    const previous = accounts[key];
-    accounts[key] = {
-      lastSeenId: result.newLastSeenId ?? previous?.lastSeenId ?? null,
-      lastCheckedAt: nowIso,
-    };
-  }
-
-  return { version: STATE_VERSION, accounts };
 }
 
 export function getAccountState(state: XfetchState, username: string): AccountState | undefined {
