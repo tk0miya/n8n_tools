@@ -1,6 +1,7 @@
 import { aroundEach, describe, expect, it } from "vitest";
-import type { AccountRunResult, PostEntry, RunOptions } from "@/xfetch/main.js";
+import type { AccountRunResult, PostEntry, ProcessedAccount, RunOptions } from "@/xfetch/main.js";
 import {
+  aggregateResults,
   buildPostEntry,
   buildRunOutput,
   filterPostsByPattern,
@@ -316,9 +317,13 @@ describe("buildRunOutput", () => {
       buildPostEntry(makePost("100", "2026-04-11T11:00:00.000Z"), sampleUser),
       buildPostEntry(makePost("101", "2026-04-11T12:00:00.000Z"), sampleUser),
     ];
-    const output = buildRunOutput(NOW, 3, 1, posts, [
-      { username: "ghost", code: "account_not_found", message: "not found" },
-    ]);
+    const output = buildRunOutput(
+      3,
+      1,
+      posts,
+      [{ username: "ghost", code: "account_not_found", message: "not found" }],
+      NOW,
+    );
     expect(output.checked_at).toBe("2026-04-11T12:34:56.000Z");
     expect(output.posts.map((p) => p.id)).toEqual(["100", "101"]);
     expect(output.errors).toHaveLength(1);
@@ -358,7 +363,7 @@ describe("toErrorEntry", () => {
 
 function makeClient(fetchImpl: (userId: string, opts?: FetchUserPostsOptions) => Promise<XPost[]>): XClientApi {
   return {
-    lookupUsers: async () => ({ ok: true, found: new Map() }),
+    lookupUsers: async () => new Map(),
     fetchUserPosts: async (userId, opts) => {
       const posts = await fetchImpl(userId, opts);
       return { ok: true as const, posts };
@@ -376,6 +381,19 @@ const baseOptions: Pick<RunOptions, "includeReposts" | "includeReplies" | "patte
   };
 
 describe("processAccount", () => {
+  it("returns account_not_found error when userId is undefined", async () => {
+    const client = makeClient(async () => []);
+    const processed = await processAccount("ghost", undefined, undefined, client, baseOptions);
+    expect(processed.accountResult).toEqual({ username: "ghost", status: "error" });
+    expect(processed.errorEntry).toEqual({
+      username: "ghost",
+      code: "account_not_found",
+      message: 'user "ghost" not found',
+    });
+    expect(processed.posts).toEqual([]);
+    expect(processed.baselineEstablished).toBe(false);
+  });
+
   it("returns baseline_established on first run without producing posts", async () => {
     let capturedOpts: FetchUserPostsOptions | undefined;
     const client = makeClient(async (_id, opts) => {
@@ -432,7 +450,7 @@ describe("processAccount", () => {
 
   it("returns an error entry when fetchUserPosts fails", async () => {
     const client: XClientApi = {
-      lookupUsers: async () => ({ ok: true, found: new Map() }),
+      lookupUsers: async () => new Map(),
       fetchUserPosts: async () => ({
         ok: false,
         error: { code: "rate_limited", message: "429", resetAt: "2026-04-11T13:00:00.000Z" },
@@ -581,5 +599,100 @@ describe("requireBearerToken", () => {
   it("throws an Error when X_BEARER_TOKEN is not set", () => {
     delete process.env.X_BEARER_TOKEN;
     expect(() => requireBearerToken()).toThrow("X_BEARER_TOKEN environment variable is not set");
+  });
+});
+
+// ── aggregateResults ────────────────────────────────────────
+
+describe("aggregateResults", () => {
+  const fulfilledResult = (value: ProcessedAccount): PromiseSettledResult<ProcessedAccount> => ({
+    status: "fulfilled",
+    value,
+  });
+
+  const rejectedResult = (reason: unknown): PromiseSettledResult<ProcessedAccount> => ({
+    status: "rejected",
+    reason,
+  });
+
+  it("collects posts and account results from fulfilled promises", () => {
+    const post = buildPostEntry(makePost("100", "2026-04-11T12:00:00.000Z"));
+    const settled = [
+      fulfilledResult({
+        accountResult: { username: "alice", status: "ok", newLastSeenId: "100" },
+        posts: [post],
+        errorEntry: null,
+        baselineEstablished: false,
+      }),
+    ];
+    const result = aggregateResults(settled, ["alice"]);
+    expect(result.posts).toEqual([post]);
+    expect(result.accountResults).toEqual([{ username: "alice", status: "ok", newLastSeenId: "100" }]);
+    expect(result.errors).toEqual([]);
+    expect(result.baselineEstablishedCount).toBe(0);
+  });
+
+  it("counts baseline established results", () => {
+    const settled = [
+      fulfilledResult({
+        accountResult: { username: "alice", status: "baseline_established", newLastSeenId: "50" },
+        posts: [],
+        errorEntry: null,
+        baselineEstablished: true,
+      }),
+    ];
+    const result = aggregateResults(settled, ["alice"]);
+    expect(result.baselineEstablishedCount).toBe(1);
+  });
+
+  it("collects error entries from fulfilled results that have errors", () => {
+    const settled = [
+      fulfilledResult({
+        accountResult: { username: "alice", status: "error" },
+        posts: [],
+        errorEntry: { username: "alice", code: "rate_limited", message: "429" },
+        baselineEstablished: false,
+      }),
+    ];
+    const result = aggregateResults(settled, ["alice"]);
+    expect(result.errors).toEqual([{ username: "alice", code: "rate_limited", message: "429" }]);
+  });
+
+  it("converts rejected promises to fetch_failed errors", () => {
+    const settled = [rejectedResult(new Error("ECONNREFUSED"))];
+    const result = aggregateResults(settled, ["alice"]);
+    expect(result.accountResults).toEqual([{ username: "alice", status: "error" }]);
+    expect(result.errors).toEqual([{ username: "alice", code: "fetch_failed", message: "ECONNREFUSED" }]);
+  });
+
+  it("converts non-Error rejected reasons to string", () => {
+    const settled = [rejectedResult("something went wrong")];
+    const result = aggregateResults(settled, ["alice"]);
+    expect(result.errors[0].message).toBe("something went wrong");
+  });
+
+  it("handles a mix of fulfilled and rejected results", () => {
+    const post = buildPostEntry(makePost("200", "2026-04-11T12:00:00.000Z"));
+    const settled = [
+      fulfilledResult({
+        accountResult: { username: "alice", status: "ok", newLastSeenId: "200" },
+        posts: [post],
+        errorEntry: null,
+        baselineEstablished: false,
+      }),
+      rejectedResult(new Error("timeout")),
+    ];
+    const result = aggregateResults(settled, ["alice", "bob"]);
+    expect(result.posts).toEqual([post]);
+    expect(result.accountResults).toHaveLength(2);
+    expect(result.errors).toEqual([{ username: "bob", code: "fetch_failed", message: "timeout" }]);
+  });
+
+  it("returns empty results for empty input", () => {
+    const result = aggregateResults([], []);
+    expect(result.posts).toEqual([]);
+    expect(result.errors).toEqual([]);
+    expect(result.accountResults).toEqual([]);
+    expect(result.baselineEstablishedCount).toBe(0);
   });
 });
