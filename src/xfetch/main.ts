@@ -163,11 +163,11 @@ export function filterPostsByPattern(posts: PostEntry[], patterns: RegExp[], inv
 }
 
 export function buildRunOutput(
-  checkedAt: Date,
   accountsCount: number,
   baselineEstablishedCount: number,
   posts: PostEntry[],
   errors: ErrorEntry[],
+  checkedAt: Date = new Date(),
 ): RunOutput {
   return {
     checked_at: checkedAt.toISOString(),
@@ -188,20 +188,70 @@ export interface AccountRunResult {
   newLastSeenId?: string | null;
 }
 
-interface ProcessedAccount {
+export interface ProcessedAccount {
   accountResult: AccountRunResult;
   posts: PostEntry[];
   errorEntry: ErrorEntry | null;
   baselineEstablished: boolean;
 }
 
+export interface AggregatedResults {
+  posts: PostEntry[];
+  errors: ErrorEntry[];
+  accountResults: AccountRunResult[];
+  baselineEstablishedCount: number;
+}
+
+export function aggregateResults(
+  settled: PromiseSettledResult<ProcessedAccount>[],
+  usernames: readonly string[],
+): AggregatedResults {
+  const posts: PostEntry[] = [];
+  const errors: ErrorEntry[] = [];
+  const accountResults: AccountRunResult[] = [];
+  let baselineEstablishedCount = 0;
+
+  for (let i = 0; i < settled.length; i += 1) {
+    const s = settled[i];
+    const username = usernames[i];
+    if (s.status === "fulfilled") {
+      accountResults.push(s.value.accountResult);
+      posts.push(...s.value.posts);
+      if (s.value.errorEntry) {
+        errors.push(s.value.errorEntry);
+      }
+      if (s.value.baselineEstablished) {
+        baselineEstablishedCount += 1;
+      }
+    } else {
+      accountResults.push({ username, status: "error" });
+      errors.push({
+        username,
+        code: "fetch_failed",
+        message: s.reason instanceof Error ? s.reason.message : String(s.reason),
+      });
+    }
+  }
+
+  return { posts, errors, accountResults, baselineEstablishedCount };
+}
+
 export async function processAccount(
   username: string,
-  userId: string,
+  userId: string | undefined,
   state: AccountState | undefined,
   client: XClientApi,
   options: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch" | "inlineMedia">,
 ): Promise<ProcessedAccount> {
+  if (!userId) {
+    return {
+      accountResult: { username, status: "error" },
+      posts: [],
+      errorEntry: { username, code: "account_not_found", message: `user "${username}" not found` },
+      baselineEstablished: false,
+    };
+  }
+
   const isFirstRun = !state || state.lastSeenId === null;
 
   const fetchOptions: FetchUserPostsOptions = {
@@ -282,78 +332,29 @@ export function mergeStateAfterRun(
 
 export async function run(options: RunOptions): Promise<number> {
   if (options.usernames.length === 0) {
-    console.error(
-      JSON.stringify({
-        error: "No usernames specified. Usage: xfetch [options] <username1> [username2 ...]",
-      }),
-    );
+    console.error("No usernames specified. Usage: xfetch [options] <username1> [username2 ...]");
     return 1;
   }
 
   const bearerToken = requireBearerToken();
   const client = new XClient(bearerToken);
   const state = await loadState(options.statePath);
-  const now = new Date();
 
-  const lookup = await client.lookupUsers(options.usernames);
-  const posts: PostEntry[] = [];
-  const errors: ErrorEntry[] = [];
-  const accountResults: AccountRunResult[] = [];
-  let baselineEstablishedCount = 0;
-
-  if (!lookup.ok) {
-    // Global failure during user lookup — no per-account processing possible.
-    for (const u of options.usernames) {
-      errors.push(toErrorEntry(u, lookup.error));
-    }
-    const output = buildRunOutput(now, options.usernames.length, 0, posts, errors);
-    console.log(JSON.stringify(output));
-    return 1;
+  const users = await client.lookupUsers(options.usernames);
+  if (!users) {
+    throw new Error("user lookup failed");
   }
-
-  const { found } = lookup;
-
-  const tasks = options.usernames
-    .map((u) => {
-      const userId = found.get(u.toLowerCase());
-      if (!userId) {
-        errors.push({ username: u, code: "account_not_found", message: `user "${u}" not found` });
-        accountResults.push({ username: u, status: "error" });
-        return null;
-      }
-      return { username: u, userId };
-    })
-    .filter((t): t is { username: string; userId: string } => t !== null);
 
   const settled = await Promise.allSettled(
-    tasks.map((t) => processAccount(t.username, t.userId, getAccountState(state, t.username), client, options)),
+    options.usernames.map((u) =>
+      processAccount(u, users.get(u.toLowerCase()), getAccountState(state, u), client, options),
+    ),
   );
+  const { posts, errors, accountResults, baselineEstablishedCount } = aggregateResults(settled, options.usernames);
 
-  for (let i = 0; i < settled.length; i += 1) {
-    const s = settled[i];
-    const username = tasks[i].username;
-    if (s.status === "fulfilled") {
-      accountResults.push(s.value.accountResult);
-      posts.push(...s.value.posts);
-      if (s.value.errorEntry) {
-        errors.push(s.value.errorEntry);
-      }
-      if (s.value.baselineEstablished) {
-        baselineEstablishedCount += 1;
-      }
-    } else {
-      accountResults.push({ username, status: "error" });
-      errors.push({
-        username,
-        code: "fetch_failed",
-        message: s.reason instanceof Error ? s.reason.message : String(s.reason),
-      });
-    }
-  }
+  const output = buildRunOutput(options.usernames.length, baselineEstablishedCount, posts, errors);
 
-  const output = buildRunOutput(now, options.usernames.length, baselineEstablishedCount, posts, errors);
-
-  const nextState = mergeStateAfterRun(state, accountResults, now);
+  const nextState = mergeStateAfterRun(state, accountResults);
   await saveState(nextState, options.statePath);
 
   console.log(JSON.stringify(output));

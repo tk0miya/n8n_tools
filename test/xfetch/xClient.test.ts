@@ -76,9 +76,8 @@ describe("XClient.lookupUsers", () => {
     );
     const client = new XClient("token");
     const result = await client.lookupUsers(["ElonMusk"]);
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("unexpected error");
-    expect(result.found.get("elonmusk")).toBe("1");
+    expect(result).not.toBeNull();
+    expect(result?.get("elonmusk")).toBe("1");
 
     const calledUrl = fetchMock.mock.calls[0][0] as URL;
     expect(calledUrl.searchParams.get("usernames")).toBe("elonmusk");
@@ -95,10 +94,9 @@ describe("XClient.lookupUsers", () => {
     );
     const client = new XClient("token");
     const result = await client.lookupUsers(["exists", "ghost"]);
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("unexpected error");
-    expect(result.found.get("exists")).toBe("1");
-    expect(result.found.has("ghost")).toBe(false);
+    expect(result).not.toBeNull();
+    expect(result?.get("exists")).toBe("1");
+    expect(result?.has("ghost")).toBe(false);
   });
 
   it("batches usernames into chunks of 100", async () => {
@@ -113,21 +111,18 @@ describe("XClient.lookupUsers", () => {
     expect(secondUrl.searchParams.get("usernames")?.split(",").length).toBe(50);
   });
 
-  it("returns unauthorized on 401", async () => {
+  it("returns null on 401", async () => {
     fetchMock.mockResolvedValueOnce(errorResponse(401, "unauthorized"));
     const client = new XClient("token");
     const result = await client.lookupUsers(["elonmusk"]);
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error("unexpected ok");
-    expect(result.error.code).toBe("unauthorized");
+    expect(result).toBeNull();
   });
 
   it("returns an empty map for empty input without calling fetch", async () => {
     const client = new XClient("token");
     const result = await client.lookupUsers([]);
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("unexpected error");
-    expect(result.found.size).toBe(0);
+    expect(result).not.toBeNull();
+    expect(result?.size).toBe(0);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
