@@ -137,6 +137,15 @@ function toAuthorInfo(user: XUser): AuthorInfo {
   };
 }
 
+export function toErrorEntry(username: string, error: XError): ErrorEntry {
+  return {
+    username,
+    code: error.code,
+    message: error.message,
+    ...(error.resetAt ? { reset_at: error.resetAt } : {}),
+  };
+}
+
 export function filterPostsByPattern(posts: PostEntry[], patterns: RegExp[], invertMatch: boolean): PostEntry[] {
   if (patterns.length === 0) return posts;
   return posts.filter((post) => {
@@ -208,12 +217,7 @@ export async function processAccount(
     return {
       accountResult: { username, status: "error" },
       posts: [],
-      errorEntry: {
-        username,
-        code: result.error.code,
-        message: result.error.message,
-        ...(result.error.resetAt ? { reset_at: result.error.resetAt } : {}),
-      },
+      errorEntry: toErrorEntry(username, result.error),
       baselineEstablished: false,
     };
   }
@@ -292,13 +296,8 @@ export async function run(options: RunOptions): Promise<void> {
 
   if (!lookup.ok) {
     // Global failure during user lookup — no per-account processing possible.
-    for (const username of options.usernames) {
-      errors.push({
-        username,
-        code: lookup.error.code,
-        message: lookup.error.message,
-        ...(lookup.error.resetAt ? { reset_at: lookup.error.resetAt } : {}),
-      });
+    for (const u of options.usernames) {
+      errors.push(toErrorEntry(u, lookup.error));
     }
     const output = buildRunOutput(now, options.usernames.length, 0, posts, errors);
     console.log(JSON.stringify(output));

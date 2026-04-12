@@ -8,6 +8,7 @@ import {
   parseArgs,
   parseUsername,
   processAccount,
+  toErrorEntry,
 } from "@/xfetch/main.js";
 import type { XfetchState } from "@/xfetch/state.js";
 import { emptyState, STATE_VERSION } from "@/xfetch/state.js";
@@ -263,6 +264,29 @@ describe("buildRunOutput", () => {
       baseline_established: 1,
       total_posts: 2,
       errors: 1,
+    });
+  });
+});
+
+// ── toErrorEntry ─────────────────────────────────────────────
+
+describe("toErrorEntry", () => {
+  it("maps XError fields to ErrorEntry", () => {
+    const entry = toErrorEntry("elonmusk", { code: "rate_limited", message: "429", resetAt: null });
+    expect(entry).toEqual({ username: "elonmusk", code: "rate_limited", message: "429" });
+  });
+
+  it("includes reset_at when resetAt is present", () => {
+    const entry = toErrorEntry("elonmusk", {
+      code: "rate_limited",
+      message: "429",
+      resetAt: "2026-04-11T13:00:00.000Z",
+    });
+    expect(entry).toEqual({
+      username: "elonmusk",
+      code: "rate_limited",
+      message: "429",
+      reset_at: "2026-04-11T13:00:00.000Z",
     });
   });
 });
