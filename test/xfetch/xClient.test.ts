@@ -143,7 +143,7 @@ describe("XClient.lookupUsers", () => {
   });
 });
 
-describe("XClient.fetchUserTweets", () => {
+describe("XClient.fetchUserPosts", () => {
   let fetchMock: FetchMock;
 
   beforeEach(() => {
@@ -158,7 +158,7 @@ describe("XClient.fetchUserTweets", () => {
   it("passes since_id, max_results and default excludes (replies only by default)", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: [], meta: { result_count: 0 } }));
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("123", { sinceId: "999" });
+    const result = await client.fetchUserPosts("123", { sinceId: "999" });
     expect(result.ok).toBe(true);
 
     const url = fetchMock.mock.calls[0][0] as URL;
@@ -180,7 +180,7 @@ describe("XClient.fetchUserTweets", () => {
   it("omits exclude when both include flags are set", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: [], meta: { result_count: 0 } }));
     const client = new XClient("token");
-    await client.fetchUserTweets("123", { includeRetweets: true, includeReplies: true });
+    await client.fetchUserPosts("123", { includeReposts: true, includeReplies: true });
     const url = fetchMock.mock.calls[0][0] as URL;
     expect(url.searchParams.get("exclude")).toBeNull();
   });
@@ -206,11 +206,11 @@ describe("XClient.fetchUserTweets", () => {
       }),
     );
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1");
+    const result = await client.fetchUserPosts("1");
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
-    expect(result.tweets).toHaveLength(1);
-    expect(result.tweets[0].media).toEqual([
+    expect(result.posts).toHaveLength(1);
+    expect(result.posts[0].media).toEqual([
       {
         type: "photo",
         url: "https://pbs.twimg.com/media/m1.jpg",
@@ -218,13 +218,13 @@ describe("XClient.fetchUserTweets", () => {
         mediaKey: "m1",
       },
     ]);
-    expect(result.tweets[0].lang).toBe("en");
-    expect(result.tweets[0].author.username).toBe("elonmusk");
-    expect(result.tweets[0].retweetedBy).toBeNull();
-    expect(result.tweets[0].sourceTweetId).toBe("100");
+    expect(result.posts[0].lang).toBe("en");
+    expect(result.posts[0].author.username).toBe("elonmusk");
+    expect(result.posts[0].repostedBy).toBeNull();
+    expect(result.posts[0].sourcePostId).toBe("100");
   });
 
-  it("maps entities.urls to XTweet.urls", async () => {
+  it("maps entities.urls to XPost.urls", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: [
@@ -251,10 +251,10 @@ describe("XClient.fetchUserTweets", () => {
       }),
     );
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1");
+    const result = await client.fetchUserPosts("1");
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
-    expect(result.tweets[0].urls).toEqual([
+    expect(result.posts[0].urls).toEqual([
       {
         url: "https://t.co/abc",
         expandedUrl: "https://example.com/page",
@@ -263,7 +263,7 @@ describe("XClient.fetchUserTweets", () => {
     ]);
   });
 
-  it("returns an empty urls array when the tweet has no entities field", async () => {
+  it("returns an empty urls array when the post has no entities field", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: [
@@ -278,13 +278,13 @@ describe("XClient.fetchUserTweets", () => {
       }),
     );
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1");
+    const result = await client.fetchUserPosts("1");
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
-    expect(result.tweets[0].urls).toEqual([]);
+    expect(result.posts[0].urls).toEqual([]);
   });
 
-  it("resolves retweets from includes and swaps the author with the original poster", async () => {
+  it("resolves reposts from includes and swaps the author with the original poster", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: [
@@ -327,23 +327,23 @@ describe("XClient.fetchUserTweets", () => {
     );
 
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("elon_id", { includeRetweets: true });
+    const result = await client.fetchUserPosts("elon_id", { includeReposts: true });
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
-    expect(result.tweets).toHaveLength(1);
-    const tweet = result.tweets[0];
-    expect(tweet.id).toBe("1700"); // retweet entry id stays as the output id for since_id tracking
-    expect(tweet.sourceTweetId).toBe("1500"); // original id for URL generation
-    expect(tweet.text).toBe("full original text from sama");
-    expect(tweet.createdAt).toBe("2026-04-11T12:00:00.000Z"); // retweet time, not original
-    expect(tweet.lang).toBe("en");
-    expect(tweet.author.username).toBe("sama");
-    expect(tweet.retweetedBy?.username).toBe("elonmusk");
-    expect(tweet.media.map((m) => m.mediaKey)).toEqual(["m9"]);
-    expect(tweet.urls.map((u) => u.expandedUrl)).toEqual(["https://example.com/page"]);
+    expect(result.posts).toHaveLength(1);
+    const post = result.posts[0];
+    expect(post.id).toBe("1700"); // repost entry id stays as the output id for since_id tracking
+    expect(post.sourcePostId).toBe("1500"); // original id for URL generation
+    expect(post.text).toBe("full original text from sama");
+    expect(post.createdAt).toBe("2026-04-11T12:00:00.000Z"); // repost time, not original
+    expect(post.lang).toBe("en");
+    expect(post.author.username).toBe("sama");
+    expect(post.repostedBy?.username).toBe("elonmusk");
+    expect(post.media.map((m) => m.mediaKey)).toEqual(["m9"]);
+    expect(post.urls.map((u) => u.expandedUrl)).toEqual(["https://example.com/page"]);
   });
 
-  it("falls back to the retweeter as author when the referenced tweet is missing from includes", async () => {
+  it("falls back to the reposter as author when the referenced post is missing from includes", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: [
@@ -363,38 +363,38 @@ describe("XClient.fetchUserTweets", () => {
     );
 
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("elon_id", { includeRetweets: true });
+    const result = await client.fetchUserPosts("elon_id", { includeReposts: true });
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
-    const tweet = result.tweets[0];
-    expect(tweet.author.username).toBe("elonmusk");
-    expect(tweet.retweetedBy).toBeNull();
-    expect(tweet.text).toBe("RT @sama: truncated…");
-    expect(tweet.sourceTweetId).toBe("1700");
+    const post = result.posts[0];
+    expect(post.author.username).toBe("elonmusk");
+    expect(post.repostedBy).toBeNull();
+    expect(post.text).toBe("RT @sama: truncated…");
+    expect(post.sourcePostId).toBe("1700");
   });
 
   it("follows pagination_token up to maxPages", async () => {
-    const page1Tweets = Array.from({ length: 5 }, (_, i) => ({
+    const page1Posts = Array.from({ length: 5 }, (_, i) => ({
       id: `${100 + i}`,
       text: `t${i}`,
       created_at: "2026-04-11T00:00:00.000Z",
       author_id: "1",
     }));
-    const page2Tweets = Array.from({ length: 3 }, (_, i) => ({
+    const page2Posts = Array.from({ length: 3 }, (_, i) => ({
       id: `${200 + i}`,
       text: `t${i}`,
       created_at: "2026-04-11T00:00:00.000Z",
       author_id: "1",
     }));
     fetchMock
-      .mockResolvedValueOnce(jsonResponse({ data: page1Tweets, meta: { result_count: 5, next_token: "tok-1" } }))
-      .mockResolvedValueOnce(jsonResponse({ data: page2Tweets, meta: { result_count: 3 } }));
+      .mockResolvedValueOnce(jsonResponse({ data: page1Posts, meta: { result_count: 5, next_token: "tok-1" } }))
+      .mockResolvedValueOnce(jsonResponse({ data: page2Posts, meta: { result_count: 3 } }));
 
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1", { maxResults: 5, maxPages: 3 });
+    const result = await client.fetchUserPosts("1", { maxResults: 5, maxPages: 3 });
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
-    expect(result.tweets).toHaveLength(8);
+    expect(result.posts).toHaveLength(8);
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     const firstUrl = fetchMock.mock.calls[0][0] as URL;
@@ -416,7 +416,7 @@ describe("XClient.fetchUserTweets", () => {
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(makePage())));
 
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1", { maxResults: 5, maxPages: 2 });
+    const result = await client.fetchUserPosts("1", { maxResults: 5, maxPages: 2 });
     expect(result.ok).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -424,7 +424,7 @@ describe("XClient.fetchUserTweets", () => {
   it("classifies 429 as rate_limited and extracts reset time", async () => {
     fetchMock.mockResolvedValueOnce(errorResponse(429, "slow down", { "x-rate-limit-reset": "1712000000" }));
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1");
+    const result = await client.fetchUserPosts("1");
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unexpected ok");
     expect(result.error.code).toBe("rate_limited");
@@ -434,7 +434,7 @@ describe("XClient.fetchUserTweets", () => {
   it("classifies 404 as account_not_found", async () => {
     fetchMock.mockResolvedValueOnce(errorResponse(404));
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1");
+    const result = await client.fetchUserPosts("1");
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unexpected ok");
     expect(result.error.code).toBe("account_not_found");
@@ -443,7 +443,7 @@ describe("XClient.fetchUserTweets", () => {
   it("classifies 500 as fetch_failed", async () => {
     fetchMock.mockResolvedValueOnce(errorResponse(500));
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1");
+    const result = await client.fetchUserPosts("1");
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unexpected ok");
     expect(result.error.code).toBe("fetch_failed");
@@ -452,7 +452,7 @@ describe("XClient.fetchUserTweets", () => {
   it("maps network errors to fetch_failed", async () => {
     fetchMock.mockRejectedValueOnce(new Error("ECONNREFUSED"));
     const client = new XClient("token");
-    const result = await client.fetchUserTweets("1");
+    const result = await client.fetchUserPosts("1");
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unexpected ok");
     expect(result.error.code).toBe("fetch_failed");

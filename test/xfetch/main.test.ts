@@ -10,7 +10,7 @@ import {
   sortPostsChronologically,
 } from "@/xfetch/main.js";
 import { emptyState, STATE_VERSION } from "@/xfetch/state.js";
-import type { FetchUserTweetsOptions, XClientApi, XTweet, XUser } from "@/xfetch/xClient.js";
+import type { FetchUserPostsOptions, XClientApi, XPost, XUser } from "@/xfetch/xClient.js";
 
 // ── parseArgs ────────────────────────────────────────────────
 
@@ -34,31 +34,31 @@ describe("parseArgs", () => {
     expect(options).toEqual({
       usernames: ["elonmusk", "sama"],
       statePath: "/xdg/state/xfetch/state.json",
-      includeRetweets: true,
+      includeReposts: true,
       includeReplies: false,
       patterns: [],
       invertMatch: false,
     });
   });
 
-  it("parses --include-retweets and --include-replies flags", () => {
-    const options = parseArgs(makeArgv("--state", "/tmp/s.json", "--include-retweets", "--include-replies", "elon"));
+  it("parses --include-reposts and --include-replies flags", () => {
+    const options = parseArgs(makeArgv("--state", "/tmp/s.json", "--include-reposts", "--include-replies", "elon"));
     expect(options).toEqual({
       usernames: ["elon"],
       statePath: "/tmp/s.json",
-      includeRetweets: true,
+      includeReposts: true,
       includeReplies: true,
       patterns: [],
       invertMatch: false,
     });
   });
 
-  it("parses --exclude-retweets and --exclude-replies flags", () => {
-    const options = parseArgs(makeArgv("--exclude-retweets", "--exclude-replies", "elon"));
+  it("parses --exclude-reposts and --exclude-replies flags", () => {
+    const options = parseArgs(makeArgv("--exclude-reposts", "--exclude-replies", "elon"));
     expect(options).toEqual({
       usernames: ["elon"],
       statePath: "/xdg/state/xfetch/state.json",
-      includeRetweets: false,
+      includeReposts: false,
       includeReplies: false,
       patterns: [],
       invertMatch: false,
@@ -83,8 +83,8 @@ describe("parseArgs", () => {
   });
 
   it("exclude-* takes precedence over include-* when both are set", () => {
-    const rt = parseArgs(makeArgv("--include-retweets", "--exclude-retweets", "elon"));
-    expect(rt.includeRetweets).toBe(false);
+    const rt = parseArgs(makeArgv("--include-reposts", "--exclude-reposts", "elon"));
+    expect(rt.includeReposts).toBe(false);
     const rep = parseArgs(makeArgv("--include-replies", "--exclude-replies", "elon"));
     expect(rep.includeReplies).toBe(false);
   });
@@ -162,30 +162,30 @@ const sampleUser: XUser = {
   profileImageUrl: "https://pbs.twimg.com/profile_images/1/e_400x400.jpg",
 };
 
-const makeTweet = (id: string, createdAt: string, extra: Partial<XTweet> = {}): XTweet => ({
+const makePost = (id: string, createdAt: string, extra: Partial<XPost> = {}): XPost => ({
   id,
-  sourceTweetId: id,
-  text: `tweet ${id}`,
+  sourcePostId: id,
+  text: `post ${id}`,
   createdAt,
   lang: "en",
   author: sampleUser,
-  retweetedBy: null,
+  repostedBy: null,
   media: [],
   urls: [],
   ...extra,
 });
 
 describe("buildPostEntry", () => {
-  it("builds the post url from the tweet author username and sourceTweetId", () => {
-    const entry = buildPostEntry(makeTweet("9001", "2026-04-11T12:00:00.000Z"));
+  it("builds the post url from the post author username and sourcePostId", () => {
+    const entry = buildPostEntry(makePost("9001", "2026-04-11T12:00:00.000Z"));
     expect(entry.url).toBe("https://x.com/elonmusk/status/9001");
   });
 
   it("embeds author and media", () => {
-    const tweet = makeTweet("5", "2026-04-11T12:00:00.000Z", {
+    const post = makePost("5", "2026-04-11T12:00:00.000Z", {
       media: [{ type: "photo", url: "https://pbs.twimg.com/media/a.jpg", previewImageUrl: null, mediaKey: "k1" }],
     });
-    const entry = buildPostEntry(tweet);
+    const entry = buildPostEntry(post);
     expect(entry.author).toEqual({
       id: "123",
       username: "elonmusk",
@@ -195,13 +195,13 @@ describe("buildPostEntry", () => {
     expect(entry.media).toEqual([{ type: "photo", url: "https://pbs.twimg.com/media/a.jpg", preview_image_url: null }]);
   });
 
-  it("defaults retweeted_by to null for normal tweets", () => {
-    const entry = buildPostEntry(makeTweet("1", "2026-04-11T12:00:00.000Z"));
-    expect(entry.retweeted_by).toBeNull();
+  it("defaults reposted_by to null for normal posts", () => {
+    const entry = buildPostEntry(makePost("1", "2026-04-11T12:00:00.000Z"));
+    expect(entry.reposted_by).toBeNull();
   });
 
-  it("maps tweet entities.urls to post urls with snake_case keys", () => {
-    const tweet = makeTweet("5", "2026-04-11T12:00:00.000Z", {
+  it("maps post entities.urls to post urls with snake_case keys", () => {
+    const post = makePost("5", "2026-04-11T12:00:00.000Z", {
       urls: [
         {
           url: "https://t.co/abc",
@@ -210,36 +210,36 @@ describe("buildPostEntry", () => {
         },
       ],
     });
-    const entry = buildPostEntry(tweet);
+    const entry = buildPostEntry(post);
     expect(entry.urls).toEqual([
       { url: "https://t.co/abc", expanded_url: "https://example.com/page", display_url: "example.com/page" },
     ]);
   });
 
-  it("returns an empty urls array when the tweet has no link entities", () => {
-    const entry = buildPostEntry(makeTweet("1", "2026-04-11T12:00:00.000Z"));
+  it("returns an empty urls array when the post has no link entities", () => {
+    const entry = buildPostEntry(makePost("1", "2026-04-11T12:00:00.000Z"));
     expect(entry.urls).toEqual([]);
   });
 
-  it("surfaces the original author in author and the retweeter in retweeted_by for retweets", () => {
+  it("surfaces the original author in author and the reposter in reposted_by for reposts", () => {
     const originalAuthor: XUser = {
       id: "999",
       username: "sama",
       name: "Sam",
       profileImageUrl: "https://pbs.twimg.com/profile_images/2/s_400x400.jpg",
     };
-    const tweet: XTweet = {
-      id: "1700", // retweet entry id on elonmusk's timeline
-      sourceTweetId: "1500", // original tweet id by sama
+    const post: XPost = {
+      id: "1700", // repost entry id on elonmusk's timeline
+      sourcePostId: "1500", // original post id by sama
       text: "full original text",
       createdAt: "2026-04-11T12:00:00.000Z",
       lang: "en",
       author: originalAuthor,
-      retweetedBy: sampleUser,
+      repostedBy: sampleUser,
       media: [],
       urls: [],
     };
-    const entry = buildPostEntry(tweet);
+    const entry = buildPostEntry(post);
     expect(entry.id).toBe("1700");
     expect(entry.url).toBe("https://x.com/sama/status/1500");
     expect(entry.text).toBe("full original text");
@@ -249,7 +249,7 @@ describe("buildPostEntry", () => {
       name: "Sam",
       profile_image_url: "https://pbs.twimg.com/profile_images/2/s_400x400.jpg",
     });
-    expect(entry.retweeted_by).toEqual({
+    expect(entry.reposted_by).toEqual({
       id: "123",
       username: "elonmusk",
       name: "Elon",
@@ -260,9 +260,9 @@ describe("buildPostEntry", () => {
 
 describe("sortPostsChronologically", () => {
   it("sorts posts from multiple authors in ascending created_at order", () => {
-    const a = buildPostEntry(makeTweet("1", "2026-04-11T12:00:00.000Z"), sampleUser);
-    const b = buildPostEntry(makeTweet("2", "2026-04-11T11:00:00.000Z"), sampleUser);
-    const c = buildPostEntry(makeTweet("3", "2026-04-11T13:00:00.000Z"), sampleUser);
+    const a = buildPostEntry(makePost("1", "2026-04-11T12:00:00.000Z"), sampleUser);
+    const b = buildPostEntry(makePost("2", "2026-04-11T11:00:00.000Z"), sampleUser);
+    const c = buildPostEntry(makePost("3", "2026-04-11T13:00:00.000Z"), sampleUser);
     const sorted = sortPostsChronologically([a, b, c]);
     expect(sorted.map((p) => p.id)).toEqual(["2", "1", "3"]);
   });
@@ -271,48 +271,48 @@ describe("sortPostsChronologically", () => {
 // ── filterPostsByPattern ─────────────────────────────────────
 
 describe("filterPostsByPattern", () => {
-  const makePost = (text: string): PostEntry => ({
-    ...buildPostEntry(makeTweet("1", "2026-04-11T12:00:00.000Z", { text })),
+  const makeTestPost = (text: string): PostEntry => ({
+    ...buildPostEntry(makePost("1", "2026-04-11T12:00:00.000Z", { text })),
     text,
   });
 
   it("returns all posts when patterns is empty", () => {
-    const posts = [makePost("hello world"), makePost("foo bar")];
+    const posts = [makeTestPost("hello world"), makeTestPost("foo bar")];
     expect(filterPostsByPattern(posts, [], false)).toEqual(posts);
   });
 
   it("keeps only posts that match any pattern when invertMatch is false", () => {
-    const posts = [makePost("hello world"), makePost("foo bar"), makePost("hello foo")];
+    const posts = [makeTestPost("hello world"), makeTestPost("foo bar"), makeTestPost("hello foo")];
     const result = filterPostsByPattern(posts, [/hello/], false);
     expect(result.map((p) => p.text)).toEqual(["hello world", "hello foo"]);
   });
 
   it("excludes posts that match any pattern when invertMatch is true", () => {
-    const posts = [makePost("hello world"), makePost("foo bar"), makePost("hello foo")];
+    const posts = [makeTestPost("hello world"), makeTestPost("foo bar"), makeTestPost("hello foo")];
     const result = filterPostsByPattern(posts, [/hello/], true);
     expect(result.map((p) => p.text)).toEqual(["foo bar"]);
   });
 
   it("matches if any of multiple patterns match (OR semantics)", () => {
-    const posts = [makePost("apple pie"), makePost("banana split"), makePost("cherry cake")];
+    const posts = [makeTestPost("apple pie"), makeTestPost("banana split"), makeTestPost("cherry cake")];
     const result = filterPostsByPattern(posts, [/apple/, /banana/], false);
     expect(result.map((p) => p.text)).toEqual(["apple pie", "banana split"]);
   });
 
   it("excludes posts matching any pattern when invertMatch is true with multiple patterns", () => {
-    const posts = [makePost("apple pie"), makePost("banana split"), makePost("cherry cake")];
+    const posts = [makeTestPost("apple pie"), makeTestPost("banana split"), makeTestPost("cherry cake")];
     const result = filterPostsByPattern(posts, [/apple/, /banana/], true);
     expect(result.map((p) => p.text)).toEqual(["cherry cake"]);
   });
 
   it("matches case-sensitively", () => {
-    const posts = [makePost("Hello World"), makePost("hello world")];
+    const posts = [makeTestPost("Hello World"), makeTestPost("hello world")];
     const result = filterPostsByPattern(posts, [/hello/], false);
     expect(result.map((p) => p.text)).toEqual(["hello world"]);
   });
 
   it("returns empty array when no posts match", () => {
-    const posts = [makePost("foo"), makePost("bar")];
+    const posts = [makeTestPost("foo"), makeTestPost("bar")];
     expect(filterPostsByPattern(posts, [/zzz/], false)).toEqual([]);
   });
 });
@@ -324,8 +324,8 @@ describe("buildRunOutput", () => {
 
   it("builds the full output shape with summary counts", () => {
     const posts: PostEntry[] = [
-      buildPostEntry(makeTweet("100", "2026-04-11T11:00:00.000Z"), sampleUser),
-      buildPostEntry(makeTweet("101", "2026-04-11T12:00:00.000Z"), sampleUser),
+      buildPostEntry(makePost("100", "2026-04-11T11:00:00.000Z"), sampleUser),
+      buildPostEntry(makePost("101", "2026-04-11T12:00:00.000Z"), sampleUser),
     ];
     const output = buildRunOutput(NOW, 3, 1, posts, [
       { username: "ghost", code: "account_not_found", message: "not found" },
@@ -344,18 +344,18 @@ describe("buildRunOutput", () => {
 
 // ── processAccount ───────────────────────────────────────────
 
-function makeClient(fetchImpl: (userId: string, opts?: FetchUserTweetsOptions) => Promise<XTweet[]>): XClientApi {
+function makeClient(fetchImpl: (userId: string, opts?: FetchUserPostsOptions) => Promise<XPost[]>): XClientApi {
   return {
     lookupUsers: async () => ({ ok: true, result: { found: new Map(), missing: [] } }),
-    fetchUserTweets: async (userId, opts) => {
-      const tweets = await fetchImpl(userId, opts);
-      return { ok: true as const, tweets };
+    fetchUserPosts: async (userId, opts) => {
+      const posts = await fetchImpl(userId, opts);
+      return { ok: true as const, posts };
     },
   };
 }
 
-const baseOptions: Pick<RunOptions, "includeRetweets" | "includeReplies" | "patterns" | "invertMatch"> = {
-  includeRetweets: true,
+const baseOptions: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch"> = {
+  includeReposts: true,
   includeReplies: false,
   patterns: [],
   invertMatch: false,
@@ -363,10 +363,10 @@ const baseOptions: Pick<RunOptions, "includeRetweets" | "includeReplies" | "patt
 
 describe("processAccount", () => {
   it("returns baseline_established on first run without producing posts", async () => {
-    let capturedOpts: FetchUserTweetsOptions | undefined;
+    let capturedOpts: FetchUserPostsOptions | undefined;
     const client = makeClient(async (_id, opts) => {
       capturedOpts = opts;
-      return [makeTweet("999", "2026-04-11T12:00:00.000Z")];
+      return [makePost("999", "2026-04-11T12:00:00.000Z")];
     });
     const state = emptyState();
     const processed = await processAccount("elonmusk", sampleUser, state, client, baseOptions);
@@ -381,10 +381,10 @@ describe("processAccount", () => {
   });
 
   it("uses the cached lastSeenId as since_id on subsequent runs", async () => {
-    let capturedOpts: FetchUserTweetsOptions | undefined;
+    let capturedOpts: FetchUserPostsOptions | undefined;
     const client = makeClient(async (_id, opts) => {
       capturedOpts = opts;
-      return [makeTweet("200", "2026-04-11T12:00:00.000Z"), makeTweet("199", "2026-04-11T11:00:00.000Z")];
+      return [makePost("200", "2026-04-11T12:00:00.000Z"), makePost("199", "2026-04-11T11:00:00.000Z")];
     });
     const state = {
       version: STATE_VERSION as 1,
@@ -405,7 +405,7 @@ describe("processAccount", () => {
     expect(processed.posts.map((p) => p.id)).toEqual(["200", "199"]);
   });
 
-  it("preserves cached lastSeenId on a subsequent run with no new tweets", async () => {
+  it("preserves cached lastSeenId on a subsequent run with no new posts", async () => {
     const client = makeClient(async () => []);
     const state = {
       version: STATE_VERSION as 1,
@@ -424,10 +424,10 @@ describe("processAccount", () => {
     expect(processed.baselineEstablished).toBe(false);
   });
 
-  it("returns an error entry when fetchUserTweets fails", async () => {
+  it("returns an error entry when fetchUserPosts fails", async () => {
     const client: XClientApi = {
       lookupUsers: async () => ({ ok: true, result: { found: new Map(), missing: [] } }),
-      fetchUserTweets: async () => ({
+      fetchUserPosts: async () => ({
         ok: false,
         error: { code: "rate_limited", message: "429", resetAt: "2026-04-11T13:00:00.000Z" },
       }),
@@ -449,7 +449,7 @@ describe("processAccount", () => {
     expect(processed.posts).toEqual([]);
   });
 
-  it("returns empty baseline when account has zero tweets", async () => {
+  it("returns empty baseline when account has zero posts", async () => {
     const client = makeClient(async () => []);
     const processed = await processAccount("elonmusk", sampleUser, emptyState(), client, baseOptions);
     expect(processed.accountResult).toEqual({
@@ -461,8 +461,8 @@ describe("processAccount", () => {
 
   it("filters posts by pattern when patterns are specified", async () => {
     const client = makeClient(async () => [
-      makeTweet("200", "2026-04-11T12:00:00.000Z", { text: "hello world" }),
-      makeTweet("199", "2026-04-11T11:00:00.000Z", { text: "foo bar" }),
+      makePost("200", "2026-04-11T12:00:00.000Z", { text: "hello world" }),
+      makePost("199", "2026-04-11T11:00:00.000Z", { text: "foo bar" }),
     ]);
     const state = {
       version: STATE_VERSION as 1,
@@ -480,8 +480,8 @@ describe("processAccount", () => {
 
   it("excludes posts matching pattern when invertMatch is true", async () => {
     const client = makeClient(async () => [
-      makeTweet("200", "2026-04-11T12:00:00.000Z", { text: "hello world" }),
-      makeTweet("199", "2026-04-11T11:00:00.000Z", { text: "foo bar" }),
+      makePost("200", "2026-04-11T12:00:00.000Z", { text: "hello world" }),
+      makePost("199", "2026-04-11T11:00:00.000Z", { text: "foo bar" }),
     ]);
     const state = {
       version: STATE_VERSION as 1,
@@ -497,12 +497,12 @@ describe("processAccount", () => {
     expect(processed.posts.map((p) => p.text)).toEqual(["foo bar"]);
   });
 
-  it("tracks newLastSeenId from the newest fetched tweet even when it is excluded by the filter", async () => {
-    // Tweet "200" is the newest but matches the exclusion pattern.
+  it("tracks newLastSeenId from the newest fetched post even when it is excluded by the filter", async () => {
+    // Post "200" is the newest but matches the exclusion pattern.
     // It must still advance newLastSeenId so the next run does not re-fetch it.
     const client = makeClient(async () => [
-      makeTweet("200", "2026-04-11T12:00:00.000Z", { text: "spam content" }),
-      makeTweet("199", "2026-04-11T11:00:00.000Z", { text: "useful content" }),
+      makePost("200", "2026-04-11T12:00:00.000Z", { text: "spam content" }),
+      makePost("199", "2026-04-11T11:00:00.000Z", { text: "useful content" }),
     ]);
     const state = {
       version: STATE_VERSION as 1,
