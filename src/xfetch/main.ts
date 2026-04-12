@@ -33,7 +33,6 @@ export interface PostEntry {
   created_at: string;
   media: MediaInfo[];
   author: AuthorInfo;
-  reposted_by: AuthorInfo | null;
 }
 
 export interface ErrorEntry {
@@ -117,7 +116,7 @@ export function requireBearerToken(): string {
 export function buildPostEntry(post: XPost): PostEntry {
   return {
     id: post.id,
-    url: `https://x.com/${encodeURIComponent(post.author.username)}/status/${post.sourcePostId}`,
+    url: `https://x.com/${post.author.username}/status/${post.id}`,
     text: post.text,
     created_at: post.createdAt,
     media: post.media.map((m) => ({
@@ -126,7 +125,6 @@ export function buildPostEntry(post: XPost): PostEntry {
       preview_image_url: m.previewImageUrl,
     })),
     author: toAuthorInfo(post.author),
-    reposted_by: post.repostedBy ? toAuthorInfo(post.repostedBy) : null,
   };
 }
 

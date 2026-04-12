@@ -32,11 +32,9 @@ export interface XMediaEntry {
 
 export interface XPost {
   id: string;
-  sourcePostId: string; // original post id; same as `id` unless this is a repost
   text: string;
   createdAt: string;
-  author: XUser; // effective author: for reposts this is the original poster
-  repostedBy: XUser | null; // set only when the timeline entry is a repost
+  author: XUser;
   media: XMediaEntry[];
 }
 
@@ -86,25 +84,18 @@ interface RawMedia {
   preview_image_url?: string;
 }
 
-interface RawReferencedPost {
-  type: string; // "retweeted" | "quoted" | "replied_to"
-  id: string;
-}
-
 interface RawPost {
   id: string;
   text: string;
   created_at: string;
   author_id: string;
   attachments?: { media_keys?: string[] };
-  referenced_tweets?: RawReferencedPost[];
 }
 
 interface RawPostsResponse {
   data?: RawPost[];
   includes?: {
     media?: RawMedia[];
-    tweets?: RawPost[];
     users?: RawUser[];
   };
   meta?: {
@@ -192,45 +183,17 @@ function mapRawMedia(mediaKeys: readonly string[] | undefined, mediaMap: Readonl
     .filter((m): m is XMediaEntry => m !== null);
 }
 
-/**
- * Converts a single raw timeline entry into the internal {@link XPost}
- * shape, resolving repost indirection so callers always see the original
- * author and full content. Exported for test setup; not intended as a
- * general-purpose public helper.
- *
- * Quote posts (`type === "quoted"`) and replies (`type === "replied_to"`)
- * intentionally pass through unchanged: the quoter/replier is the
- * effective author because the visible content is their own commentary,
- * not the referenced post.
- */
 export function buildXPostFromRaw(
   raw: RawPost,
   usersMap: ReadonlyMap<string, XUser>,
-  includedPostsMap: ReadonlyMap<string, RawPost>,
   mediaMap: ReadonlyMap<string, RawMedia>,
 ): XPost {
-  const repostRef = raw.referenced_tweets?.find((r) => r.type === "retweeted");
-  const original = repostRef ? includedPostsMap.get(repostRef.id) : undefined;
-  const isRepost = original !== undefined;
-
-  // For reposts the visible content (text/media/urls/author) comes from
-  // the referenced original post, while the timeline entry (id,
-  // created_at) stays the outer one so since_id tracking still works and
-  // the repost event appears at its actual time in chronological sort.
-  const contentSource = original ?? raw;
-
-  const author = resolveXUser(contentSource.author_id, usersMap);
-  const repostedBy =
-    isRepost && raw.author_id !== contentSource.author_id ? resolveXUser(raw.author_id, usersMap) : null;
-
   return {
     id: raw.id,
-    sourcePostId: contentSource.id,
-    text: contentSource.text,
+    text: raw.text,
     createdAt: raw.created_at,
-    author,
-    repostedBy,
-    media: mapRawMedia(contentSource.attachments?.media_keys, mediaMap),
+    author: resolveXUser(raw.author_id, usersMap),
+    media: mapRawMedia(raw.attachments?.media_keys, mediaMap),
   };
 }
 
@@ -308,11 +271,8 @@ export class XClient {
     while (page < maxPages) {
       const url = new URL(`${X_API_BASE}/users/${encodeURIComponent(userId)}/tweets`);
       url.searchParams.set("max_results", String(maxResults));
-      url.searchParams.set("tweet.fields", "id,text,created_at,author_id,attachments,referenced_tweets");
-      url.searchParams.set(
-        "expansions",
-        "author_id,attachments.media_keys,referenced_tweets.id,referenced_tweets.id.author_id",
-      );
+      url.searchParams.set("tweet.fields", "id,text,created_at,author_id,attachments");
+      url.searchParams.set("expansions", "author_id,attachments.media_keys");
       url.searchParams.set("media.fields", "url,preview_image_url,type");
       url.searchParams.set("user.fields", "id,username,name,profile_image_url");
       const excludes: string[] = [];
@@ -371,16 +331,8 @@ export class XClient {
         });
       }
 
-      const includedPostsMap = new Map<string, RawPost>();
-      for (const includedPost of body.includes?.tweets ?? []) {
-        includedPostsMap.set(includedPost.id, includedPost);
-      }
-
       for (const raw of body.data ?? []) {
-        const post = buildXPostFromRaw(raw, usersMap, includedPostsMap, mediaMap);
-        if (post) {
-          posts.push(post);
-        }
+        posts.push(buildXPostFromRaw(raw, usersMap, mediaMap));
       }
 
       page += 1;

@@ -169,10 +169,6 @@ describe("XClient.fetchUserPosts", () => {
     const expansions = url.searchParams.get("expansions") ?? "";
     expect(expansions).toContain("author_id");
     expect(expansions).toContain("attachments.media_keys");
-    expect(expansions).toContain("referenced_tweets.id");
-    expect(expansions).toContain("referenced_tweets.id.author_id");
-    const tweetFields = url.searchParams.get("tweet.fields") ?? "";
-    expect(tweetFields).toContain("referenced_tweets");
     expect(url.searchParams.get("user.fields")).toContain("profile_image_url");
   });
 
@@ -217,11 +213,9 @@ describe("XClient.fetchUserPosts", () => {
       },
     ]);
     expect(result.posts[0].author.username).toBe("elonmusk");
-    expect(result.posts[0].repostedBy).toBeNull();
-    expect(result.posts[0].sourcePostId).toBe("100");
   });
 
-  it("resolves reposts from includes and swaps the author with the original poster", async () => {
+  it("uses the repost entry directly without resolving the original post", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: [
@@ -230,54 +224,6 @@ describe("XClient.fetchUserPosts", () => {
             text: "RT @sama: this will be truncat…",
             created_at: "2026-04-11T12:00:00.000Z",
             author_id: "elon_id",
-            referenced_tweets: [{ type: "retweeted", id: "1500" }],
-          },
-        ],
-        includes: {
-          users: [
-            { id: "elon_id", username: "elonmusk", name: "Elon", profile_image_url: "https://pbs/e_normal.jpg" },
-            { id: "sama_id", username: "sama", name: "Sam", profile_image_url: "https://pbs/s_normal.jpg" },
-          ],
-          tweets: [
-            {
-              id: "1500",
-              text: "full original text from sama",
-              created_at: "2026-04-10T09:00:00.000Z",
-              author_id: "sama_id",
-              attachments: { media_keys: ["m9"] },
-            },
-          ],
-          media: [{ media_key: "m9", type: "photo", url: "https://pbs.twimg.com/media/m9.jpg" }],
-        },
-        meta: { result_count: 1 },
-      }),
-    );
-
-    const client = new XClient("token");
-    const result = await client.fetchUserPosts("elon_id", { includeReposts: true });
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("unexpected error");
-    expect(result.posts).toHaveLength(1);
-    const post = result.posts[0];
-    expect(post.id).toBe("1700"); // repost entry id stays as the output id for since_id tracking
-    expect(post.sourcePostId).toBe("1500"); // original id for URL generation
-    expect(post.text).toBe("full original text from sama");
-    expect(post.createdAt).toBe("2026-04-11T12:00:00.000Z"); // repost time, not original
-    expect(post.author.username).toBe("sama");
-    expect(post.repostedBy?.username).toBe("elonmusk");
-    expect(post.media.map((m) => m.mediaKey)).toEqual(["m9"]);
-  });
-
-  it("falls back to the reposter as author when the referenced post is missing from includes", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: [
-          {
-            id: "1700",
-            text: "RT @sama: truncated…",
-            created_at: "2026-04-11T12:00:00.000Z",
-            author_id: "elon_id",
-            referenced_tweets: [{ type: "retweeted", id: "1500" }],
           },
         ],
         includes: {
@@ -291,11 +237,13 @@ describe("XClient.fetchUserPosts", () => {
     const result = await client.fetchUserPosts("elon_id", { includeReposts: true });
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
+    expect(result.posts).toHaveLength(1);
     const post = result.posts[0];
+    expect(post.id).toBe("1700");
+    expect(post.text).toBe("RT @sama: this will be truncat…");
+    expect(post.createdAt).toBe("2026-04-11T12:00:00.000Z");
     expect(post.author.username).toBe("elonmusk");
-    expect(post.repostedBy).toBeNull();
-    expect(post.text).toBe("RT @sama: truncated…");
-    expect(post.sourcePostId).toBe("1700");
+    expect(post.media).toEqual([]);
   });
 
   it("follows pagination_token up to maxPages", async () => {
