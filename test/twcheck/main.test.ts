@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { PostEntry, RunOptions } from "@/twcheck/main.js";
-import { buildPostEntry, buildRunOutput, parseArgs, processAccount, sortPostsChronologically } from "@/twcheck/main.js";
+import {
+  buildPostEntry,
+  buildRunOutput,
+  parseArgs,
+  parseUsername,
+  processAccount,
+  sortPostsChronologically,
+} from "@/twcheck/main.js";
 import { emptyState, STATE_VERSION } from "@/twcheck/state.js";
 import type { FetchUserTweetsOptions, XClientApi, XTweet, XUser } from "@/twcheck/xClient.js";
 
@@ -49,6 +56,31 @@ describe("parseArgs", () => {
   it("strips a leading @ from usernames", () => {
     const options = parseArgs(makeArgv("@elonmusk"));
     expect(options.usernames).toEqual(["elonmusk"]);
+  });
+
+  it("extracts username from https://x.com/foo URL", () => {
+    const options = parseArgs(makeArgv("https://x.com/elonmusk"));
+    expect(options.usernames).toEqual(["elonmusk"]);
+  });
+});
+
+// ── parseUsername ────────────────────────────────────────────
+
+describe("parseUsername", () => {
+  it("returns plain username as-is", () => {
+    expect(parseUsername("elonmusk")).toBe("elonmusk");
+  });
+
+  it("strips a leading @", () => {
+    expect(parseUsername("@elonmusk")).toBe("elonmusk");
+  });
+
+  it("extracts username from https://x.com/foo", () => {
+    expect(parseUsername("https://x.com/elonmusk")).toBe("elonmusk");
+  });
+
+  it("extracts username from https://twitter.com/foo", () => {
+    expect(parseUsername("https://twitter.com/elonmusk")).toBe("elonmusk");
   });
 });
 
