@@ -31,42 +31,42 @@ export interface XMediaEntry {
 }
 
 export interface XUrlEntry {
-  url: string; // the t.co URL as it appears in the tweet text
+  url: string; // the t.co URL as it appears in the post text
   expandedUrl: string; // the fully expanded destination URL
   displayUrl: string; // the display-friendly URL shown in clients
 }
 
-export interface XTweet {
+export interface XPost {
   id: string;
-  sourceTweetId: string; // original tweet id; same as `id` unless this is a retweet
+  sourcePostId: string; // original post id; same as `id` unless this is a repost
   text: string;
   createdAt: string;
   lang: string | null;
-  author: XUser; // effective author: for retweets this is the original poster
-  retweetedBy: XUser | null; // set only when the timeline entry is a retweet
+  author: XUser; // effective author: for reposts this is the original poster
+  repostedBy: XUser | null; // set only when the timeline entry is a repost
   media: XMediaEntry[];
   urls: XUrlEntry[];
 }
 
-export interface FetchUserTweetsOptions {
+export interface FetchUserPostsOptions {
   sinceId?: string | null;
   maxResults?: number;
   maxPages?: number;
-  includeRetweets?: boolean;
+  includeReposts?: boolean;
   includeReplies?: boolean;
 }
 
-export interface FetchUserTweetsSuccess {
+export interface FetchUserPostsSuccess {
   ok: true;
-  tweets: XTweet[];
+  posts: XPost[];
 }
 
-export interface FetchUserTweetsFailure {
+export interface FetchUserPostsFailure {
   ok: false;
   error: XError;
 }
 
-export type FetchUserTweetsResult = FetchUserTweetsSuccess | FetchUserTweetsFailure;
+export type FetchUserPostsResult = FetchUserPostsSuccess | FetchUserPostsFailure;
 
 export interface LookupUsersSuccess {
   ok: true;
@@ -100,12 +100,12 @@ interface RawUrlEntity {
   display_url?: string;
 }
 
-interface RawReferencedTweet {
+interface RawReferencedPost {
   type: string; // "retweeted" | "quoted" | "replied_to"
   id: string;
 }
 
-interface RawTweet {
+interface RawPost {
   id: string;
   text: string;
   created_at: string;
@@ -113,14 +113,14 @@ interface RawTweet {
   lang?: string;
   attachments?: { media_keys?: string[] };
   entities?: { urls?: RawUrlEntity[] };
-  referenced_tweets?: RawReferencedTweet[];
+  referenced_tweets?: RawReferencedPost[];
 }
 
-interface RawTweetsResponse {
-  data?: RawTweet[];
+interface RawPostsResponse {
+  data?: RawPost[];
   includes?: {
     media?: RawMedia[];
-    tweets?: RawTweet[];
+    tweets?: RawPost[];
     users?: RawUser[];
   };
   meta?: {
@@ -208,7 +208,7 @@ function mapRawMedia(mediaKeys: readonly string[] | undefined, mediaMap: Readonl
     .filter((m): m is XMediaEntry => m !== null);
 }
 
-function mapRawUrls(entities: RawTweet["entities"]): XUrlEntry[] {
+function mapRawUrls(entities: RawPost["entities"]): XUrlEntry[] {
   return (entities?.urls ?? [])
     .map((entry): XUrlEntry | null => {
       if (!entry.expanded_url) return null;
@@ -222,44 +222,44 @@ function mapRawUrls(entities: RawTweet["entities"]): XUrlEntry[] {
 }
 
 /**
- * Converts a single raw timeline entry into the internal {@link XTweet}
- * shape, resolving retweet indirection so callers always see the original
+ * Converts a single raw timeline entry into the internal {@link XPost}
+ * shape, resolving repost indirection so callers always see the original
  * author and full content. Exported for test setup; not intended as a
  * general-purpose public helper.
  *
- * Quote tweets (`type === "quoted"`) and replies (`type === "replied_to"`)
+ * Quote posts (`type === "quoted"`) and replies (`type === "replied_to"`)
  * intentionally pass through unchanged: the quoter/replier is the
  * effective author because the visible content is their own commentary,
- * not the referenced tweet.
+ * not the referenced post.
  */
-export function buildXTweetFromRaw(
-  raw: RawTweet,
+export function buildXPostFromRaw(
+  raw: RawPost,
   usersMap: ReadonlyMap<string, XUser>,
-  includedTweetsMap: ReadonlyMap<string, RawTweet>,
+  includedPostsMap: ReadonlyMap<string, RawPost>,
   mediaMap: ReadonlyMap<string, RawMedia>,
-): XTweet {
-  const retweetRef = raw.referenced_tweets?.find((r) => r.type === "retweeted");
-  const original = retweetRef ? includedTweetsMap.get(retweetRef.id) : undefined;
-  const isRetweet = original !== undefined;
+): XPost {
+  const repostRef = raw.referenced_tweets?.find((r) => r.type === "retweeted");
+  const original = repostRef ? includedPostsMap.get(repostRef.id) : undefined;
+  const isRepost = original !== undefined;
 
-  // For retweets the visible content (text/media/urls/author) comes from
-  // the referenced original tweet, while the timeline entry (id,
+  // For reposts the visible content (text/media/urls/author) comes from
+  // the referenced original post, while the timeline entry (id,
   // created_at) stays the outer one so since_id tracking still works and
-  // the retweet event appears at its actual time in chronological sort.
+  // the repost event appears at its actual time in chronological sort.
   const contentSource = original ?? raw;
 
   const author = resolveXUser(contentSource.author_id, usersMap);
-  const retweetedBy =
-    isRetweet && raw.author_id !== contentSource.author_id ? resolveXUser(raw.author_id, usersMap) : null;
+  const repostedBy =
+    isRepost && raw.author_id !== contentSource.author_id ? resolveXUser(raw.author_id, usersMap) : null;
 
   return {
     id: raw.id,
-    sourceTweetId: contentSource.id,
+    sourcePostId: contentSource.id,
     text: contentSource.text,
     createdAt: raw.created_at,
     lang: contentSource.lang ?? null,
     author,
-    retweetedBy,
+    repostedBy,
     media: mapRawMedia(contentSource.attachments?.media_keys, mediaMap),
     urls: mapRawUrls(contentSource.entities),
   };
@@ -323,16 +323,16 @@ export class XClient {
     return { ok: true, result: { found, missing: Array.from(missing) } };
   }
 
-  async fetchUserTweets(userId: string, options: FetchUserTweetsOptions = {}): Promise<FetchUserTweetsResult> {
+  async fetchUserPosts(userId: string, options: FetchUserPostsOptions = {}): Promise<FetchUserPostsResult> {
     const {
       sinceId,
       maxResults = DEFAULT_PAGE_SIZE,
       maxPages = DEFAULT_MAX_PAGES,
-      includeRetweets = true,
+      includeReposts = true,
       includeReplies = false,
     } = options;
 
-    const tweets: XTweet[] = [];
+    const posts: XPost[] = [];
     let nextToken: string | undefined;
     let page = 0;
 
@@ -347,7 +347,7 @@ export class XClient {
       url.searchParams.set("media.fields", "url,preview_image_url,type");
       url.searchParams.set("user.fields", "id,username,name,profile_image_url");
       const excludes: string[] = [];
-      if (!includeRetweets) excludes.push("retweets");
+      if (!includeReposts) excludes.push("retweets");
       if (!includeReplies) excludes.push("replies");
       if (excludes.length > 0) {
         url.searchParams.set("exclude", excludes.join(","));
@@ -374,9 +374,9 @@ export class XClient {
         return { ok: false, error: classifyHttpError(response.status, response.headers, text) };
       }
 
-      let body: RawTweetsResponse;
+      let body: RawPostsResponse;
       try {
-        body = (await response.json()) as RawTweetsResponse;
+        body = (await response.json()) as RawPostsResponse;
       } catch (error) {
         return {
           ok: false,
@@ -402,15 +402,15 @@ export class XClient {
         });
       }
 
-      const includedTweetsMap = new Map<string, RawTweet>();
-      for (const includedTweet of body.includes?.tweets ?? []) {
-        includedTweetsMap.set(includedTweet.id, includedTweet);
+      const includedPostsMap = new Map<string, RawPost>();
+      for (const includedPost of body.includes?.tweets ?? []) {
+        includedPostsMap.set(includedPost.id, includedPost);
       }
 
       for (const raw of body.data ?? []) {
-        const tweet = buildXTweetFromRaw(raw, usersMap, includedTweetsMap, mediaMap);
-        if (tweet) {
-          tweets.push(tweet);
+        const post = buildXPostFromRaw(raw, usersMap, includedPostsMap, mediaMap);
+        if (post) {
+          posts.push(post);
         }
       }
 
@@ -421,7 +421,7 @@ export class XClient {
       }
     }
 
-    return { ok: true, tweets };
+    return { ok: true, posts };
   }
 
   private buildHeaders(): HeadersInit {
@@ -437,4 +437,4 @@ export class XClient {
  * tests or wrappers that only need the two HTTP methods without the private
  * bearer-token state.
  */
-export type XClientApi = Pick<XClient, "lookupUsers" | "fetchUserTweets">;
+export type XClientApi = Pick<XClient, "lookupUsers" | "fetchUserPosts">;

@@ -1,13 +1,13 @@
 import { parseArgs as nodeParseArgs } from "node:util";
 import type { AccountRunResult, XfetchState } from "./state.js";
 import { getAccountState, getDefaultStatePath, loadState, mergeStateAfterRun, saveState } from "./state.js";
-import type { FetchUserTweetsOptions, XClientApi, XError, XTweet, XUser } from "./xClient.js";
+import type { FetchUserPostsOptions, XClientApi, XError, XPost, XUser } from "./xClient.js";
 import { XClient } from "./xClient.js";
 
 export interface RunOptions {
   usernames: string[];
   statePath: string;
-  includeRetweets: boolean;
+  includeReposts: boolean;
   includeReplies: boolean;
   patterns: RegExp[];
   invertMatch: boolean;
@@ -41,7 +41,7 @@ export interface PostEntry {
   media: MediaInfo[];
   urls: UrlInfo[];
   author: AuthorInfo;
-  retweeted_by: AuthorInfo | null;
+  reposted_by: AuthorInfo | null;
 }
 
 export interface ErrorEntry {
@@ -83,8 +83,8 @@ export function parseArgs(argv: string[]): RunOptions {
     args: argv.slice(2),
     options: {
       state: { type: "string" },
-      "include-retweets": { type: "boolean" },
-      "exclude-retweets": { type: "boolean" },
+      "include-reposts": { type: "boolean" },
+      "exclude-reposts": { type: "boolean" },
       "include-replies": { type: "boolean" },
       "exclude-replies": { type: "boolean" },
       regexp: { type: "string", multiple: true, short: "e" },
@@ -106,7 +106,7 @@ export function parseArgs(argv: string[]): RunOptions {
   return {
     usernames: positionals.map(parseUsername),
     statePath: values.state ?? process.env.XFETCH_STATE_FILE ?? getDefaultStatePath(),
-    includeRetweets: values["exclude-retweets"] ? false : (values["include-retweets"] ?? true),
+    includeReposts: values["exclude-reposts"] ? false : (values["include-reposts"] ?? true),
     includeReplies: values["exclude-replies"] ? false : (values["include-replies"] ?? false),
     patterns,
     invertMatch: values["invert-match"] ?? false,
@@ -122,25 +122,25 @@ export function requireBearerToken(): string {
   return token;
 }
 
-export function buildPostEntry(tweet: XTweet): PostEntry {
+export function buildPostEntry(post: XPost): PostEntry {
   return {
-    id: tweet.id,
-    url: `https://x.com/${encodeURIComponent(tweet.author.username)}/status/${tweet.sourceTweetId}`,
-    text: tweet.text,
-    created_at: tweet.createdAt,
-    lang: tweet.lang,
-    media: tweet.media.map((m) => ({
+    id: post.id,
+    url: `https://x.com/${encodeURIComponent(post.author.username)}/status/${post.sourcePostId}`,
+    text: post.text,
+    created_at: post.createdAt,
+    lang: post.lang,
+    media: post.media.map((m) => ({
       type: m.type,
       url: m.url,
       preview_image_url: m.previewImageUrl,
     })),
-    urls: tweet.urls.map((u) => ({
+    urls: post.urls.map((u) => ({
       url: u.url,
       expanded_url: u.expandedUrl,
       display_url: u.displayUrl,
     })),
-    author: toAuthorInfo(tweet.author),
-    retweeted_by: tweet.retweetedBy ? toAuthorInfo(tweet.retweetedBy) : null,
+    author: toAuthorInfo(post.author),
+    reposted_by: post.repostedBy ? toAuthorInfo(post.repostedBy) : null,
   };
 }
 
@@ -203,25 +203,25 @@ export async function processAccount(
   user: XUser,
   state: XfetchState,
   client: XClientApi,
-  options: Pick<RunOptions, "includeRetweets" | "includeReplies" | "patterns" | "invertMatch">,
+  options: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch">,
 ): Promise<ProcessedAccount> {
   const previous = getAccountState(state, username);
   const isFirstRun = !previous || previous.lastSeenId === null;
 
-  const fetchOptions: FetchUserTweetsOptions = {
-    includeRetweets: options.includeRetweets,
+  const fetchOptions: FetchUserPostsOptions = {
+    includeReposts: options.includeReposts,
     includeReplies: options.includeReplies,
   };
 
   if (isFirstRun) {
-    // Baseline run: fetch only the most recent tweet to record as lastSeenId.
+    // Baseline run: fetch only the most recent post to record as lastSeenId.
     fetchOptions.maxResults = 5;
     fetchOptions.maxPages = 1;
   } else {
     fetchOptions.sinceId = previous?.lastSeenId ?? null;
   }
 
-  const result = await client.fetchUserTweets(user.id, fetchOptions);
+  const result = await client.fetchUserPosts(user.id, fetchOptions);
 
   if (!result.ok) {
     return {
@@ -237,10 +237,10 @@ export async function processAccount(
     };
   }
 
-  const tweets = result.tweets;
+  const posts = result.posts;
 
   if (isFirstRun) {
-    const newestId = tweets[0]?.id ?? null;
+    const newestId = posts[0]?.id ?? null;
     return {
       accountResult: { username, status: "baseline_established", newLastSeenId: newestId },
       posts: [],
@@ -249,12 +249,12 @@ export async function processAccount(
     };
   }
 
-  const newestId = tweets[0]?.id ?? previous?.lastSeenId ?? null;
+  const newestId = posts[0]?.id ?? previous?.lastSeenId ?? null;
 
   return {
     accountResult: { username, status: "ok", newLastSeenId: newestId },
     posts: filterPostsByPattern(
-      tweets.map((tweet) => buildPostEntry(tweet)),
+      posts.map((post) => buildPostEntry(post)),
       options.patterns,
       options.invertMatch,
     ),
