@@ -7,7 +7,6 @@ import {
   parseArgs,
   parseUsername,
   processAccount,
-  sortPostsChronologically,
 } from "@/xfetch/main.js";
 import { emptyState, STATE_VERSION } from "@/xfetch/state.js";
 import type { FetchUserPostsOptions, XClientApi, XPost, XUser } from "@/xfetch/xClient.js";
@@ -192,16 +191,6 @@ describe("buildPostEntry", () => {
   });
 });
 
-describe("sortPostsChronologically", () => {
-  it("sorts posts from multiple authors in ascending created_at order", () => {
-    const a = buildPostEntry(makePost("1", "2026-04-11T12:00:00.000Z"), sampleUser);
-    const b = buildPostEntry(makePost("2", "2026-04-11T11:00:00.000Z"), sampleUser);
-    const c = buildPostEntry(makePost("3", "2026-04-11T13:00:00.000Z"), sampleUser);
-    const sorted = sortPostsChronologically([a, b, c]);
-    expect(sorted.map((p) => p.id)).toEqual(["2", "1", "3"]);
-  });
-});
-
 // ── filterPostsByPattern ─────────────────────────────────────
 
 describe("filterPostsByPattern", () => {
@@ -312,13 +301,15 @@ describe("processAccount", () => {
     expect(capturedOpts?.sinceId).toBeUndefined();
     expect(capturedOpts?.maxResults).toBe(5);
     expect(capturedOpts?.maxPages).toBe(1);
+    expect(capturedOpts?.sort).toBe(true);
   });
 
   it("uses the cached lastSeenId as since_id on subsequent runs", async () => {
     let capturedOpts: FetchUserPostsOptions | undefined;
     const client = makeClient(async (_id, opts) => {
       capturedOpts = opts;
-      return [makePost("200", "2026-04-11T12:00:00.000Z"), makePost("199", "2026-04-11T11:00:00.000Z")];
+      // Simulate sort: true — oldest first.
+      return [makePost("199", "2026-04-11T11:00:00.000Z"), makePost("200", "2026-04-11T12:00:00.000Z")];
     });
     const state = {
       version: STATE_VERSION as 1,
@@ -331,12 +322,13 @@ describe("processAccount", () => {
     // Subsequent runs should use the xClient defaults (page size / max pages).
     expect(capturedOpts?.maxResults).toBeUndefined();
     expect(capturedOpts?.maxPages).toBeUndefined();
+    expect(capturedOpts?.sort).toBe(true);
     expect(processed.accountResult).toEqual({
       username: "elonmusk",
       status: "ok",
       newLastSeenId: "200",
     });
-    expect(processed.posts.map((p) => p.id)).toEqual(["200", "199"]);
+    expect(processed.posts.map((p) => p.id)).toEqual(["199", "200"]);
   });
 
   it("preserves cached lastSeenId on a subsequent run with no new posts", async () => {
@@ -434,9 +426,10 @@ describe("processAccount", () => {
   it("tracks newLastSeenId from the newest fetched post even when it is excluded by the filter", async () => {
     // Post "200" is the newest but matches the exclusion pattern.
     // It must still advance newLastSeenId so the next run does not re-fetch it.
+    // Simulate sort: true — oldest first.
     const client = makeClient(async () => [
-      makePost("200", "2026-04-11T12:00:00.000Z", { text: "spam content" }),
       makePost("199", "2026-04-11T11:00:00.000Z", { text: "useful content" }),
+      makePost("200", "2026-04-11T12:00:00.000Z", { text: "spam content" }),
     ]);
     const state = {
       version: STATE_VERSION as 1,

@@ -145,15 +145,6 @@ export function filterPostsByPattern(posts: PostEntry[], patterns: RegExp[], inv
   });
 }
 
-export function sortPostsChronologically(posts: PostEntry[]): PostEntry[] {
-  return [...posts].sort((a, b) => {
-    const ta = Date.parse(a.created_at);
-    const tb = Date.parse(b.created_at);
-    if (ta !== tb) return ta - tb;
-    return a.id.localeCompare(b.id);
-  });
-}
-
 export function buildRunOutput(
   checkedAt: Date,
   accountsCount: number,
@@ -161,15 +152,14 @@ export function buildRunOutput(
   posts: PostEntry[],
   errors: ErrorEntry[],
 ): RunOutput {
-  const sorted = sortPostsChronologically(posts);
   return {
     checked_at: checkedAt.toISOString(),
-    posts: sorted,
+    posts,
     errors,
     summary: {
       total_accounts: accountsCount,
       baseline_established: baselineEstablishedCount,
-      total_posts: sorted.length,
+      total_posts: posts.length,
       errors: errors.length,
     },
   };
@@ -195,6 +185,7 @@ export async function processAccount(
   const fetchOptions: FetchUserPostsOptions = {
     includeReposts: options.includeReposts,
     includeReplies: options.includeReplies,
+    sort: true,
   };
 
   if (isFirstRun) {
@@ -224,7 +215,8 @@ export async function processAccount(
   const posts = result.posts;
 
   if (isFirstRun) {
-    const newestId = posts[0]?.id ?? null;
+    // sort: true returns posts oldest-first; the last element is the newest.
+    const newestId = posts.at(-1)?.id ?? null;
     return {
       accountResult: { username, status: "baseline_established", newLastSeenId: newestId },
       posts: [],
@@ -233,7 +225,8 @@ export async function processAccount(
     };
   }
 
-  const newestId = posts[0]?.id ?? previous?.lastSeenId ?? null;
+  // sort: true returns posts oldest-first; the last element is the newest.
+  const newestId = posts.at(-1)?.id ?? previous?.lastSeenId ?? null;
 
   return {
     accountResult: { username, status: "ok", newLastSeenId: newestId },

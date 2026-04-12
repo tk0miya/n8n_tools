@@ -39,6 +39,7 @@ export interface FetchUserPostsOptions {
   maxPages?: number;
   includeReposts?: boolean;
   includeReplies?: boolean;
+  sort?: boolean;
 }
 
 export interface FetchUserPostsSuccess {
@@ -265,6 +266,7 @@ export class XClient {
       maxPages = DEFAULT_MAX_PAGES,
       includeReposts = true,
       includeReplies = false,
+      sort = false,
     } = options;
 
     const posts: XPost[] = [];
@@ -286,6 +288,15 @@ export class XClient {
       if (!nextToken) {
         break;
       }
+    }
+
+    if (sort) {
+      posts.sort((a, b) => {
+        const ta = Date.parse(a.createdAt);
+        const tb = Date.parse(b.createdAt);
+        if (ta !== tb) return ta - tb;
+        return a.id.localeCompare(b.id);
+      });
     }
 
     return { ok: true, posts };
