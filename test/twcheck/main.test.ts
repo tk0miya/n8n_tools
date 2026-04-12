@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { aroundEach, describe, expect, it } from "vitest";
 import type { PostEntry, RunOptions } from "@/twcheck/main.js";
 import {
   buildPostEntry,
@@ -17,11 +17,23 @@ import type { FetchUserTweetsOptions, XClientApi, XTweet, XUser } from "@/twchec
 describe("parseArgs", () => {
   const makeArgv = (...rest: string[]) => ["node", "cli.js", ...rest];
 
+  aroundEach(async (test) => {
+    const savedXdgStateHome = process.env.XDG_STATE_HOME;
+    const savedTwcheckState = process.env.TWCHECK_STATE_FILE;
+    process.env.XDG_STATE_HOME = "/xdg/state";
+    delete process.env.TWCHECK_STATE_FILE;
+    await test();
+    if (savedXdgStateHome === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = savedXdgStateHome;
+    if (savedTwcheckState === undefined) delete process.env.TWCHECK_STATE_FILE;
+    else process.env.TWCHECK_STATE_FILE = savedTwcheckState;
+  });
+
   it("returns defaults when only positional usernames are given", () => {
     const options = parseArgs(makeArgv("elonmusk", "sama"));
     expect(options).toEqual({
       usernames: ["elonmusk", "sama"],
-      statePath: "./twcheck_state.json",
+      statePath: "/xdg/state/twcheck/state.json",
       includeRetweets: true,
       includeReplies: false,
       patterns: [],
@@ -45,12 +57,29 @@ describe("parseArgs", () => {
     const options = parseArgs(makeArgv("--exclude-retweets", "--exclude-replies", "elon"));
     expect(options).toEqual({
       usernames: ["elon"],
-      statePath: "./twcheck_state.json",
+      statePath: "/xdg/state/twcheck/state.json",
       includeRetweets: false,
       includeReplies: false,
       patterns: [],
       invertMatch: false,
     });
+  });
+
+  it("uses TWCHECK_STATE_FILE env var when --state is not specified", () => {
+    process.env.TWCHECK_STATE_FILE = "/env/state.json";
+    const options = parseArgs(makeArgv("elon"));
+    expect(options.statePath).toBe("/env/state.json");
+  });
+
+  it("--state argument takes precedence over TWCHECK_STATE_FILE env var", () => {
+    process.env.TWCHECK_STATE_FILE = "/env/state.json";
+    const options = parseArgs(makeArgv("--state", "/arg/state.json", "elon"));
+    expect(options.statePath).toBe("/arg/state.json");
+  });
+
+  it("falls back to XDG default when neither --state nor TWCHECK_STATE_FILE is set", () => {
+    const options = parseArgs(makeArgv("elon"));
+    expect(options.statePath).toBe("/xdg/state/twcheck/state.json");
   });
 
   it("exclude-* takes precedence over include-* when both are set", () => {

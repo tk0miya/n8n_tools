@@ -1,7 +1,11 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { homedir } from "node:os";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
-export const DEFAULT_STATE_PATH = "./twcheck_state.json";
+export function getDefaultStatePath(): string {
+  const xdgStateHome = process.env.XDG_STATE_HOME ?? join(homedir(), ".local", "state");
+  return join(xdgStateHome, "twcheck", "state.json");
+}
 export const STATE_VERSION = 1;
 
 export interface AccountState {
@@ -28,7 +32,7 @@ export function resolveStatePath(path: string): string {
   return isAbsolute(path) ? path : resolve(process.cwd(), path);
 }
 
-export async function loadState(path: string = DEFAULT_STATE_PATH): Promise<TwcheckState> {
+export async function loadState(path: string = getDefaultStatePath()): Promise<TwcheckState> {
   const absolute = resolveStatePath(path);
   let raw: string;
   try {
@@ -56,7 +60,7 @@ export async function loadState(path: string = DEFAULT_STATE_PATH): Promise<Twch
   return parsed;
 }
 
-export async function saveState(state: TwcheckState, path: string = DEFAULT_STATE_PATH): Promise<void> {
+export async function saveState(state: TwcheckState, path: string = getDefaultStatePath()): Promise<void> {
   const absolute = resolveStatePath(path);
   const dir = dirname(absolute);
   await mkdir(dir, { recursive: true });

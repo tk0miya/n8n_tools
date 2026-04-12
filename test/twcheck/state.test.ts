@@ -1,11 +1,12 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, aroundEach, beforeEach, describe, expect, it } from "vitest";
 import type { AccountRunResult, TwcheckState } from "@/twcheck/state.js";
 import {
   emptyState,
   getAccountState,
+  getDefaultStatePath,
   loadState,
   mergeStateAfterRun,
   resolveStatePath,
@@ -22,6 +23,26 @@ describe("resolveStatePath", () => {
     const resolved = resolveStatePath("./twcheck_state.json");
     expect(resolved.startsWith("/")).toBe(true);
     expect(resolved.endsWith("twcheck_state.json")).toBe(true);
+  });
+});
+
+describe("getDefaultStatePath", () => {
+  aroundEach(async (test) => {
+    const savedXdgStateHome = process.env.XDG_STATE_HOME;
+    await test();
+    if (savedXdgStateHome === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = savedXdgStateHome;
+  });
+
+  it("returns XDG_STATE_HOME-based path when XDG_STATE_HOME is set", () => {
+    process.env.XDG_STATE_HOME = "/custom/xdg";
+    expect(getDefaultStatePath()).toBe("/custom/xdg/twcheck/state.json");
+  });
+
+  it("falls back to ~/.local/state when XDG_STATE_HOME is not set", () => {
+    delete process.env.XDG_STATE_HOME;
+    const path = getDefaultStatePath();
+    expect(path).toMatch(/\/\.local\/state\/twcheck\/state\.json$/);
   });
 });
 
