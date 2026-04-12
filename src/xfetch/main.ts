@@ -200,7 +200,7 @@ interface ProcessedAccount {
 
 export async function processAccount(
   username: string,
-  user: XUser,
+  userId: string,
   state: XfetchState,
   client: XClientApi,
   options: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch">,
@@ -221,7 +221,7 @@ export async function processAccount(
     fetchOptions.sinceId = previous?.lastSeenId ?? null;
   }
 
-  const result = await client.fetchUserPosts(user.id, fetchOptions);
+  const result = await client.fetchUserPosts(userId, fetchOptions);
 
   if (!result.ok) {
     return {
@@ -299,28 +299,22 @@ export async function run(options: RunOptions): Promise<void> {
     process.exit(1);
   }
 
-  const { found, missing } = lookup.result;
-
-  for (const username of missing) {
-    errors.push({
-      username,
-      code: "account_not_found",
-      message: `user "${username}" not found`,
-    });
-    accountResults.push({ username, status: "error" });
-  }
+  const { found } = lookup;
 
   const tasks = options.usernames
     .map((u) => {
-      const key = u.toLowerCase();
-      const user = found.get(key);
-      if (!user) return null;
-      return { username: u, user };
+      const userId = found.get(u.toLowerCase());
+      if (!userId) {
+        errors.push({ username: u, code: "account_not_found", message: `user "${u}" not found` });
+        accountResults.push({ username: u, status: "error" });
+        return null;
+      }
+      return { username: u, userId };
     })
-    .filter((t): t is { username: string; user: XUser } => t !== null);
+    .filter((t): t is { username: string; userId: string } => t !== null);
 
   const settled = await Promise.allSettled(
-    tasks.map((t) => processAccount(t.username, t.user, state, client, options)),
+    tasks.map((t) => processAccount(t.username, t.userId, state, client, options)),
   );
 
   for (let i = 0; i < settled.length; i += 1) {

@@ -68,50 +68,37 @@ describe("XClient.lookupUsers", () => {
     vi.unstubAllGlobals();
   });
 
-  it("calls /users/by with user.fields including profile_image_url", async () => {
+  it("returns a username-to-id map and requests only id and username fields", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
-        data: [
-          {
-            id: "1",
-            username: "elonmusk",
-            name: "Elon",
-            profile_image_url: "https://pbs.twimg.com/profile_images/1/e_normal.jpg",
-          },
-        ],
+        data: [{ id: "1", username: "elonmusk" }],
       }),
     );
     const client = new XClient("token");
     const result = await client.lookupUsers(["ElonMusk"]);
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
-    const user = result.result.found.get("elonmusk");
-    expect(user).toEqual({
-      id: "1",
-      username: "elonmusk",
-      name: "Elon",
-      profileImageUrl: "https://pbs.twimg.com/profile_images/1/e_400x400.jpg",
-    });
-    expect(result.result.missing).toEqual([]);
+    expect(result.found.get("elonmusk")).toBe("1");
 
     const calledUrl = fetchMock.mock.calls[0][0] as URL;
     expect(calledUrl.searchParams.get("usernames")).toBe("elonmusk");
-    expect(calledUrl.searchParams.get("user.fields")).toContain("profile_image_url");
+    expect(calledUrl.searchParams.get("user.fields")).toBe("id,username");
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer token");
   });
 
-  it("reports missing usernames from the server response", async () => {
+  it("omits missing usernames from the returned map", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
-        data: [{ id: "1", username: "exists", name: "Exists", profile_image_url: "https://a/b_normal.jpg" }],
+        data: [{ id: "1", username: "exists" }],
       }),
     );
     const client = new XClient("token");
     const result = await client.lookupUsers(["exists", "ghost"]);
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unexpected error");
-    expect(result.result.missing).toEqual(["ghost"]);
+    expect(result.found.get("exists")).toBe("1");
+    expect(result.found.has("ghost")).toBe(false);
   });
 
   it("batches usernames into chunks of 100", async () => {
@@ -135,10 +122,12 @@ describe("XClient.lookupUsers", () => {
     expect(result.error.code).toBe("unauthorized");
   });
 
-  it("returns empty result for empty input without calling fetch", async () => {
+  it("returns an empty map for empty input without calling fetch", async () => {
     const client = new XClient("token");
     const result = await client.lookupUsers([]);
     expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unexpected error");
+    expect(result.found.size).toBe(0);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
