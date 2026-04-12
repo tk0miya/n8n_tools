@@ -320,4 +320,59 @@ describe("XClient.fetchUserPosts", () => {
     expect(result.error.code).toBe("fetch_failed");
     expect(result.error.message).toContain("ECONNREFUSED");
   });
+
+  it("returns posts in chronological order when sort: true", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: [
+          { id: "300", text: "newest", created_at: "2026-04-11T12:00:00.000Z", author_id: "1" },
+          { id: "200", text: "middle", created_at: "2026-04-11T06:00:00.000Z", author_id: "1" },
+          { id: "100", text: "oldest", created_at: "2026-04-11T00:00:00.000Z", author_id: "1" },
+        ],
+        includes: { users: [{ id: "1", username: "user1", name: "User" }] },
+        meta: { result_count: 3 },
+      }),
+    );
+    const client = new XClient("token");
+    const result = await client.fetchUserPosts("1", { sort: true });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unexpected error");
+    expect(result.posts.map((p) => p.id)).toEqual(["100", "200", "300"]);
+  });
+
+  it("returns posts in API order when sort is omitted", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: [
+          { id: "300", text: "newest", created_at: "2026-04-11T12:00:00.000Z", author_id: "1" },
+          { id: "100", text: "oldest", created_at: "2026-04-11T00:00:00.000Z", author_id: "1" },
+        ],
+        includes: { users: [{ id: "1", username: "user1", name: "User" }] },
+        meta: { result_count: 2 },
+      }),
+    );
+    const client = new XClient("token");
+    const result = await client.fetchUserPosts("1");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unexpected error");
+    expect(result.posts.map((p) => p.id)).toEqual(["300", "100"]);
+  });
+
+  it("uses id as tiebreaker when sort: true and timestamps are equal", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: [
+          { id: "200", text: "b", created_at: "2026-04-11T00:00:00.000Z", author_id: "1" },
+          { id: "100", text: "a", created_at: "2026-04-11T00:00:00.000Z", author_id: "1" },
+        ],
+        includes: { users: [{ id: "1", username: "user1", name: "User" }] },
+        meta: { result_count: 2 },
+      }),
+    );
+    const client = new XClient("token");
+    const result = await client.fetchUserPosts("1", { sort: true });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unexpected error");
+    expect(result.posts.map((p) => p.id)).toEqual(["100", "200"]);
+  });
 });
