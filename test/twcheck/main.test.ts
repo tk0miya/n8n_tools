@@ -3,6 +3,7 @@ import type { PostEntry, RunOptions } from "@/twcheck/main.js";
 import {
   buildPostEntry,
   buildRunOutput,
+  filterPostsByPattern,
   parseArgs,
   parseUsername,
   processAccount,
@@ -23,6 +24,8 @@ describe("parseArgs", () => {
       statePath: "./twcheck_state.json",
       includeRetweets: true,
       includeReplies: false,
+      patterns: [],
+      invertMatch: false,
     });
   });
 
@@ -33,6 +36,8 @@ describe("parseArgs", () => {
       statePath: "/tmp/s.json",
       includeRetweets: true,
       includeReplies: true,
+      patterns: [],
+      invertMatch: false,
     });
   });
 
@@ -43,6 +48,8 @@ describe("parseArgs", () => {
       statePath: "./twcheck_state.json",
       includeRetweets: false,
       includeReplies: false,
+      patterns: [],
+      invertMatch: false,
     });
   });
 
@@ -51,6 +58,39 @@ describe("parseArgs", () => {
     expect(rt.includeRetweets).toBe(false);
     const rep = parseArgs(makeArgv("--include-replies", "--exclude-replies", "elon"));
     expect(rep.includeReplies).toBe(false);
+  });
+
+  it("parses -e pattern as a regexp", () => {
+    const options = parseArgs(makeArgv("-e", "hello", "elon"));
+    expect(options.patterns).toHaveLength(1);
+    expect(options.patterns[0]).toEqual(/hello/);
+    expect(options.invertMatch).toBe(false);
+  });
+
+  it("parses multiple -e patterns", () => {
+    const options = parseArgs(makeArgv("-e", "foo", "-e", "bar", "elon"));
+    expect(options.patterns).toEqual([/foo/, /bar/]);
+  });
+
+  it("parses --regexp as long form of -e", () => {
+    const options = parseArgs(makeArgv("--regexp", "world", "elon"));
+    expect(options.patterns).toEqual([/world/]);
+  });
+
+  it("parses -v as invert-match", () => {
+    const options = parseArgs(makeArgv("-v", "-e", "spam", "elon"));
+    expect(options.invertMatch).toBe(true);
+    expect(options.patterns).toEqual([/spam/]);
+  });
+
+  it("parses --invert-match as long form of -v", () => {
+    const options = parseArgs(makeArgv("--invert-match", "-e", "spam", "elon"));
+    expect(options.invertMatch).toBe(true);
+  });
+
+  it("supports regexp special characters in -e patterns", () => {
+    const options = parseArgs(makeArgv("-e", "^hello\\s+world$", "elon"));
+    expect(options.patterns[0]).toEqual(/^hello\s+world$/);
   });
 
   it("strips a leading @ from usernames", () => {
@@ -199,6 +239,55 @@ describe("sortPostsChronologically", () => {
   });
 });
 
+// ── filterPostsByPattern ─────────────────────────────────────
+
+describe("filterPostsByPattern", () => {
+  const makePost = (text: string): PostEntry => ({
+    ...buildPostEntry(makeTweet("1", "2026-04-11T12:00:00.000Z", { text })),
+    text,
+  });
+
+  it("returns all posts when patterns is empty", () => {
+    const posts = [makePost("hello world"), makePost("foo bar")];
+    expect(filterPostsByPattern(posts, [], false)).toEqual(posts);
+  });
+
+  it("keeps only posts that match any pattern when invertMatch is false", () => {
+    const posts = [makePost("hello world"), makePost("foo bar"), makePost("hello foo")];
+    const result = filterPostsByPattern(posts, [/hello/], false);
+    expect(result.map((p) => p.text)).toEqual(["hello world", "hello foo"]);
+  });
+
+  it("excludes posts that match any pattern when invertMatch is true", () => {
+    const posts = [makePost("hello world"), makePost("foo bar"), makePost("hello foo")];
+    const result = filterPostsByPattern(posts, [/hello/], true);
+    expect(result.map((p) => p.text)).toEqual(["foo bar"]);
+  });
+
+  it("matches if any of multiple patterns match (OR semantics)", () => {
+    const posts = [makePost("apple pie"), makePost("banana split"), makePost("cherry cake")];
+    const result = filterPostsByPattern(posts, [/apple/, /banana/], false);
+    expect(result.map((p) => p.text)).toEqual(["apple pie", "banana split"]);
+  });
+
+  it("excludes posts matching any pattern when invertMatch is true with multiple patterns", () => {
+    const posts = [makePost("apple pie"), makePost("banana split"), makePost("cherry cake")];
+    const result = filterPostsByPattern(posts, [/apple/, /banana/], true);
+    expect(result.map((p) => p.text)).toEqual(["cherry cake"]);
+  });
+
+  it("matches case-sensitively", () => {
+    const posts = [makePost("Hello World"), makePost("hello world")];
+    const result = filterPostsByPattern(posts, [/hello/], false);
+    expect(result.map((p) => p.text)).toEqual(["hello world"]);
+  });
+
+  it("returns empty array when no posts match", () => {
+    const posts = [makePost("foo"), makePost("bar")];
+    expect(filterPostsByPattern(posts, [/zzz/], false)).toEqual([]);
+  });
+});
+
 // ── buildRunOutput ───────────────────────────────────────────
 
 describe("buildRunOutput", () => {
@@ -236,9 +325,11 @@ function makeClient(fetchImpl: (userId: string, opts?: FetchUserTweetsOptions) =
   };
 }
 
-const baseOptions: Pick<RunOptions, "includeRetweets" | "includeReplies"> = {
+const baseOptions: Pick<RunOptions, "includeRetweets" | "includeReplies" | "patterns" | "invertMatch"> = {
   includeRetweets: true,
   includeReplies: false,
+  patterns: [],
+  invertMatch: false,
 };
 
 describe("processAccount", () => {
@@ -337,5 +428,65 @@ describe("processAccount", () => {
       status: "baseline_established",
       newLastSeenId: null,
     });
+  });
+
+  it("filters posts by pattern when patterns are specified", async () => {
+    const client = makeClient(async () => [
+      makeTweet("200", "2026-04-11T12:00:00.000Z", { text: "hello world" }),
+      makeTweet("199", "2026-04-11T11:00:00.000Z", { text: "foo bar" }),
+    ]);
+    const state = {
+      version: STATE_VERSION as 1,
+      accounts: {
+        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
+      },
+    };
+    const processed = await processAccount("elonmusk", sampleUser, state, client, {
+      ...baseOptions,
+      patterns: [/hello/],
+      invertMatch: false,
+    });
+    expect(processed.posts.map((p) => p.text)).toEqual(["hello world"]);
+  });
+
+  it("excludes posts matching pattern when invertMatch is true", async () => {
+    const client = makeClient(async () => [
+      makeTweet("200", "2026-04-11T12:00:00.000Z", { text: "hello world" }),
+      makeTweet("199", "2026-04-11T11:00:00.000Z", { text: "foo bar" }),
+    ]);
+    const state = {
+      version: STATE_VERSION as 1,
+      accounts: {
+        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
+      },
+    };
+    const processed = await processAccount("elonmusk", sampleUser, state, client, {
+      ...baseOptions,
+      patterns: [/hello/],
+      invertMatch: true,
+    });
+    expect(processed.posts.map((p) => p.text)).toEqual(["foo bar"]);
+  });
+
+  it("tracks newLastSeenId from the newest fetched tweet even when it is excluded by the filter", async () => {
+    // Tweet "200" is the newest but matches the exclusion pattern.
+    // It must still advance newLastSeenId so the next run does not re-fetch it.
+    const client = makeClient(async () => [
+      makeTweet("200", "2026-04-11T12:00:00.000Z", { text: "spam content" }),
+      makeTweet("199", "2026-04-11T11:00:00.000Z", { text: "useful content" }),
+    ]);
+    const state = {
+      version: STATE_VERSION as 1,
+      accounts: {
+        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
+      },
+    };
+    const processed = await processAccount("elonmusk", sampleUser, state, client, {
+      ...baseOptions,
+      patterns: [/spam/],
+      invertMatch: true,
+    });
+    expect(processed.posts.map((p) => p.text)).toEqual(["useful content"]);
+    expect(processed.accountResult.newLastSeenId).toBe("200");
   });
 });
