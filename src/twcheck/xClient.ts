@@ -328,7 +328,7 @@ export class XClient {
       sinceId,
       maxResults = DEFAULT_PAGE_SIZE,
       maxPages = DEFAULT_MAX_PAGES,
-      includeRetweets = false,
+      includeRetweets = true,
       includeReplies = false,
     } = options;
 

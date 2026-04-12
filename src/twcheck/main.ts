@@ -69,7 +69,9 @@ export function parseArgs(argv: string[]): RunOptions {
     options: {
       state: { type: "string" },
       "include-retweets": { type: "boolean" },
+      "exclude-retweets": { type: "boolean" },
       "include-replies": { type: "boolean" },
+      "exclude-replies": { type: "boolean" },
     },
     allowPositionals: true,
   });
@@ -77,8 +79,8 @@ export function parseArgs(argv: string[]): RunOptions {
   return {
     usernames: positionals.map((u) => u.replace(/^@/, "")),
     statePath: values.state ?? DEFAULT_STATE_PATH,
-    includeRetweets: values["include-retweets"] ?? false,
-    includeReplies: values["include-replies"] ?? false,
+    includeRetweets: values["exclude-retweets"] ? false : (values["include-retweets"] ?? true),
+    includeReplies: values["exclude-replies"] ? false : (values["include-replies"] ?? false),
   };
 }
 

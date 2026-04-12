@@ -14,12 +14,12 @@ describe("parseArgs", () => {
     expect(options).toEqual({
       usernames: ["elonmusk", "sama"],
       statePath: "./twcheck_state.json",
-      includeRetweets: false,
+      includeRetweets: true,
       includeReplies: false,
     });
   });
 
-  it("parses flags", () => {
+  it("parses --include-retweets and --include-replies flags", () => {
     const options = parseArgs(makeArgv("--state", "/tmp/s.json", "--include-retweets", "--include-replies", "elon"));
     expect(options).toEqual({
       usernames: ["elon"],
@@ -27,6 +27,23 @@ describe("parseArgs", () => {
       includeRetweets: true,
       includeReplies: true,
     });
+  });
+
+  it("parses --exclude-retweets and --exclude-replies flags", () => {
+    const options = parseArgs(makeArgv("--exclude-retweets", "--exclude-replies", "elon"));
+    expect(options).toEqual({
+      usernames: ["elon"],
+      statePath: "./twcheck_state.json",
+      includeRetweets: false,
+      includeReplies: false,
+    });
+  });
+
+  it("exclude-* takes precedence over include-* when both are set", () => {
+    const rt = parseArgs(makeArgv("--include-retweets", "--exclude-retweets", "elon"));
+    expect(rt.includeRetweets).toBe(false);
+    const rep = parseArgs(makeArgv("--include-replies", "--exclude-replies", "elon"));
+    expect(rep.includeReplies).toBe(false);
   });
 
   it("strips a leading @ from usernames", () => {
@@ -188,7 +205,7 @@ function makeClient(fetchImpl: (userId: string, opts?: FetchUserTweetsOptions) =
 }
 
 const baseOptions: Pick<RunOptions, "includeRetweets" | "includeReplies"> = {
-  includeRetweets: false,
+  includeRetweets: true,
   includeReplies: false,
 };
 
