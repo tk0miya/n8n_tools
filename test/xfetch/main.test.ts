@@ -8,6 +8,7 @@ import {
   parseArgs,
   parseUsername,
   processAccount,
+  requireBearerToken,
   toErrorEntry,
 } from "@/xfetch/main.js";
 import type { XfetchState } from "@/xfetch/state.js";
@@ -132,6 +133,10 @@ describe("parseArgs", () => {
   it("extracts username from https://x.com/foo URL", () => {
     const options = parseArgs(makeArgv("https://x.com/elonmusk"));
     expect(options.usernames).toEqual(["elonmusk"]);
+  });
+
+  it("throws an Error for an invalid regexp pattern", () => {
+    expect(() => parseArgs(makeArgv("-e", "[invalid", "elon"))).toThrow("invalid regexp pattern: [invalid");
   });
 });
 
@@ -526,5 +531,26 @@ describe("mergeStateAfterRun", () => {
     const next = mergeStateAfterRun(state, results, NOW);
     expect(next.accounts.elonmusk).toBeDefined();
     expect(next.accounts.ElonMusk).toBeUndefined();
+  });
+});
+
+// ── requireBearerToken ───────────────────────────────────────
+
+describe("requireBearerToken", () => {
+  aroundEach(async (test) => {
+    const saved = process.env.X_BEARER_TOKEN;
+    await test();
+    if (saved === undefined) delete process.env.X_BEARER_TOKEN;
+    else process.env.X_BEARER_TOKEN = saved;
+  });
+
+  it("returns the token when X_BEARER_TOKEN is set", () => {
+    process.env.X_BEARER_TOKEN = "mytoken";
+    expect(requireBearerToken()).toBe("mytoken");
+  });
+
+  it("throws an Error when X_BEARER_TOKEN is not set", () => {
+    delete process.env.X_BEARER_TOKEN;
+    expect(() => requireBearerToken()).toThrow("X_BEARER_TOKEN environment variable is not set");
   });
 });

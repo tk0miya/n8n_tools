@@ -89,8 +89,7 @@ export function parseArgs(argv: string[]): RunOptions {
     try {
       patterns.push(new RegExp(p));
     } catch {
-      console.error(`Error: invalid regexp pattern: ${p}`);
-      process.exit(1);
+      throw new Error(`invalid regexp pattern: ${p}`);
     }
   }
 
@@ -107,8 +106,7 @@ export function parseArgs(argv: string[]): RunOptions {
 export function requireBearerToken(): string {
   const token = process.env.X_BEARER_TOKEN;
   if (!token) {
-    console.error("Error: X_BEARER_TOKEN environment variable is not set");
-    process.exit(1);
+    throw new Error("X_BEARER_TOKEN environment variable is not set");
   }
   return token;
 }
@@ -273,14 +271,14 @@ export function mergeStateAfterRun(
   return { version: STATE_VERSION, accounts };
 }
 
-export async function run(options: RunOptions): Promise<void> {
+export async function run(options: RunOptions): Promise<number> {
   if (options.usernames.length === 0) {
     console.error(
       JSON.stringify({
         error: "No usernames specified. Usage: xfetch [options] <username1> [username2 ...]",
       }),
     );
-    process.exit(1);
+    return 1;
   }
 
   const bearerToken = requireBearerToken();
@@ -301,7 +299,7 @@ export async function run(options: RunOptions): Promise<void> {
     }
     const output = buildRunOutput(now, options.usernames.length, 0, posts, errors);
     console.log(JSON.stringify(output));
-    process.exit(1);
+    return 1;
   }
 
   const { found } = lookup;
@@ -352,7 +350,5 @@ export async function run(options: RunOptions): Promise<void> {
   console.log(JSON.stringify(output));
 
   const anySuccess = accountResults.some((r) => r.status !== "error");
-  if (!anySuccess) {
-    process.exit(1);
-  }
+  return anySuccess ? 0 : 1;
 }
