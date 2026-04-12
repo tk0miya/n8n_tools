@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { normalizeProfileImageUrl, parseRateLimitHeaders, XClient } from "@/twcheck/xClient.js";
+import { normalizeProfileImageUrl, parseRateLimitHeaders, XClient } from "@/xfetch/xClient.js";
 
 type FetchMock = ReturnType<typeof vi.fn>;
 

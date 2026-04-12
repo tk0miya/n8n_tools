@@ -4,7 +4,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 
 export function getDefaultStatePath(): string {
   const xdgStateHome = process.env.XDG_STATE_HOME ?? join(homedir(), ".local", "state");
-  return join(xdgStateHome, "twcheck", "state.json");
+  return join(xdgStateHome, "xfetch", "state.json");
 }
 export const STATE_VERSION = 1;
 
@@ -13,7 +13,7 @@ export interface AccountState {
   lastCheckedAt: string;
 }
 
-export interface TwcheckState {
+export interface XfetchState {
   version: typeof STATE_VERSION;
   accounts: Record<string, AccountState>;
 }
@@ -24,7 +24,7 @@ export interface AccountRunResult {
   newLastSeenId?: string | null;
 }
 
-export function emptyState(): TwcheckState {
+export function emptyState(): XfetchState {
   return { version: STATE_VERSION, accounts: {} };
 }
 
@@ -32,7 +32,7 @@ export function resolveStatePath(path: string): string {
   return isAbsolute(path) ? path : resolve(process.cwd(), path);
 }
 
-export async function loadState(path: string = getDefaultStatePath()): Promise<TwcheckState> {
+export async function loadState(path: string = getDefaultStatePath()): Promise<XfetchState> {
   const absolute = resolveStatePath(path);
   let raw: string;
   try {
@@ -41,7 +41,7 @@ export async function loadState(path: string = getDefaultStatePath()): Promise<T
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return emptyState();
     }
-    console.warn(`[twcheck] failed to read state at ${absolute}: ${(error as Error).message}`);
+    console.warn(`[xfetch] failed to read state at ${absolute}: ${(error as Error).message}`);
     return emptyState();
   }
 
@@ -49,18 +49,18 @@ export async function loadState(path: string = getDefaultStatePath()): Promise<T
   try {
     parsed = JSON.parse(raw);
   } catch (error) {
-    console.warn(`[twcheck] state file is not valid JSON, starting fresh: ${(error as Error).message}`);
+    console.warn(`[xfetch] state file is not valid JSON, starting fresh: ${(error as Error).message}`);
     return emptyState();
   }
 
-  if (!isTwcheckState(parsed)) {
-    console.warn("[twcheck] state file schema is invalid or version mismatch, starting fresh");
+  if (!isXfetchState(parsed)) {
+    console.warn("[xfetch] state file schema is invalid or version mismatch, starting fresh");
     return emptyState();
   }
   return parsed;
 }
 
-export async function saveState(state: TwcheckState, path: string = getDefaultStatePath()): Promise<void> {
+export async function saveState(state: XfetchState, path: string = getDefaultStatePath()): Promise<void> {
   const absolute = resolveStatePath(path);
   const dir = dirname(absolute);
   await mkdir(dir, { recursive: true });
@@ -71,10 +71,10 @@ export async function saveState(state: TwcheckState, path: string = getDefaultSt
 }
 
 export function mergeStateAfterRun(
-  state: TwcheckState,
+  state: XfetchState,
   results: readonly AccountRunResult[],
   now: Date = new Date(),
-): TwcheckState {
+): XfetchState {
   const nowIso = now.toISOString();
   const accounts: Record<string, AccountState> = { ...state.accounts };
 
@@ -93,11 +93,11 @@ export function mergeStateAfterRun(
   return { version: STATE_VERSION, accounts };
 }
 
-export function getAccountState(state: TwcheckState, username: string): AccountState | undefined {
+export function getAccountState(state: XfetchState, username: string): AccountState | undefined {
   return state.accounts[username.toLowerCase()];
 }
 
-function isTwcheckState(value: unknown): value is TwcheckState {
+function isXfetchState(value: unknown): value is XfetchState {
   if (typeof value !== "object" || value === null) {
     return false;
   }

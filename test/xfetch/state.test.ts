@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, aroundEach, beforeEach, describe, expect, it } from "vitest";
-import type { AccountRunResult, TwcheckState } from "@/twcheck/state.js";
+import type { AccountRunResult, XfetchState } from "@/xfetch/state.js";
 import {
   emptyState,
   getAccountState,
@@ -12,7 +12,7 @@ import {
   resolveStatePath,
   STATE_VERSION,
   saveState,
-} from "@/twcheck/state.js";
+} from "@/xfetch/state.js";
 
 describe("resolveStatePath", () => {
   it("leaves absolute paths alone", () => {
@@ -20,9 +20,9 @@ describe("resolveStatePath", () => {
   });
 
   it("resolves relative paths against cwd", () => {
-    const resolved = resolveStatePath("./twcheck_state.json");
+    const resolved = resolveStatePath("./xfetch_state.json");
     expect(resolved.startsWith("/")).toBe(true);
-    expect(resolved.endsWith("twcheck_state.json")).toBe(true);
+    expect(resolved.endsWith("xfetch_state.json")).toBe(true);
   });
 });
 
@@ -36,13 +36,13 @@ describe("getDefaultStatePath", () => {
 
   it("returns XDG_STATE_HOME-based path when XDG_STATE_HOME is set", () => {
     process.env.XDG_STATE_HOME = "/custom/xdg";
-    expect(getDefaultStatePath()).toBe("/custom/xdg/twcheck/state.json");
+    expect(getDefaultStatePath()).toBe("/custom/xdg/xfetch/state.json");
   });
 
   it("falls back to ~/.local/state when XDG_STATE_HOME is not set", () => {
     delete process.env.XDG_STATE_HOME;
     const path = getDefaultStatePath();
-    expect(path).toMatch(/\/\.local\/state\/twcheck\/state\.json$/);
+    expect(path).toMatch(/\/\.local\/state\/xfetch\/state\.json$/);
   });
 });
 
@@ -50,7 +50,7 @@ describe("loadState", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "twcheck-state-"));
+    dir = await mkdtemp(join(tmpdir(), "xfetch-state-"));
   });
 
   afterEach(async () => {
@@ -64,7 +64,7 @@ describe("loadState", () => {
 
   it("loads a valid state file", async () => {
     const path = join(dir, "state.json");
-    const initial: TwcheckState = {
+    const initial: XfetchState = {
       version: STATE_VERSION,
       accounts: {
         elonmusk: { lastSeenId: "12345", lastCheckedAt: "2026-04-01T00:00:00.000Z" },
@@ -101,7 +101,7 @@ describe("saveState", () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "twcheck-save-"));
+    dir = await mkdtemp(join(tmpdir(), "xfetch-save-"));
   });
 
   afterEach(async () => {
@@ -110,7 +110,7 @@ describe("saveState", () => {
 
   it("writes state atomically and is round-trippable", async () => {
     const path = join(dir, "nested/a/b/state.json");
-    const state: TwcheckState = {
+    const state: XfetchState = {
       version: STATE_VERSION,
       accounts: {
         elonmusk: { lastSeenId: "999", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
@@ -129,7 +129,7 @@ describe("mergeStateAfterRun", () => {
   const NOW = new Date("2026-04-11T12:00:00.000Z");
 
   it("updates lastSeenId for successful accounts", () => {
-    const state: TwcheckState = {
+    const state: XfetchState = {
       version: STATE_VERSION,
       accounts: {
         elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-01T00:00:00.000Z" },
@@ -144,7 +144,7 @@ describe("mergeStateAfterRun", () => {
   });
 
   it("keeps existing lastSeenId when error occurs", () => {
-    const state: TwcheckState = {
+    const state: XfetchState = {
       version: STATE_VERSION,
       accounts: {
         elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-01T00:00:00.000Z" },
@@ -181,7 +181,7 @@ describe("mergeStateAfterRun", () => {
 
 describe("getAccountState", () => {
   it("looks up accounts case-insensitively", () => {
-    const state: TwcheckState = {
+    const state: XfetchState = {
       version: STATE_VERSION,
       accounts: {
         elonmusk: { lastSeenId: "1", lastCheckedAt: "2026-04-01T00:00:00.000Z" },
