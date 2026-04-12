@@ -192,6 +192,22 @@ export function buildXPostFromRaw(
   };
 }
 
+interface FetchOnePageSuccess {
+  ok: true;
+  posts: XPost[];
+  nextToken?: string;
+}
+
+type FetchOnePageResult = FetchOnePageSuccess | FetchUserPostsFailure;
+
+interface FetchOnePageParams {
+  maxResults: number;
+  includeReposts: boolean;
+  includeReplies: boolean;
+  sinceId?: string | null;
+  nextToken?: string;
+}
+
 export class XClient {
   constructor(private readonly bearerToken: string) {}
 
@@ -253,83 +269,99 @@ export class XClient {
 
     const posts: XPost[] = [];
     let nextToken: string | undefined;
-    let page = 0;
 
-    while (page < maxPages) {
-      const url = new URL(`${X_API_BASE}/users/${encodeURIComponent(userId)}/tweets`);
-      url.searchParams.set("max_results", String(maxResults));
-      url.searchParams.set("tweet.fields", "id,text,created_at,author_id,attachments");
-      url.searchParams.set("expansions", "author_id,attachments.media_keys");
-      url.searchParams.set("media.fields", "url,preview_image_url,type");
-      url.searchParams.set("user.fields", "id,username,name,profile_image_url");
-      const excludes: string[] = [];
-      if (!includeReposts) excludes.push("retweets");
-      if (!includeReplies) excludes.push("replies");
-      if (excludes.length > 0) {
-        url.searchParams.set("exclude", excludes.join(","));
+    for (let page = 0; page < maxPages; page++) {
+      const pageResult = await this.fetchOnePage(userId, {
+        maxResults,
+        includeReposts,
+        includeReplies,
+        sinceId,
+        nextToken,
+      });
+      if (!pageResult.ok) {
+        return pageResult;
       }
-      if (sinceId) {
-        url.searchParams.set("since_id", sinceId);
-      }
-      if (nextToken) {
-        url.searchParams.set("pagination_token", nextToken);
-      }
-
-      let response: Response;
-      try {
-        response = await fetch(url, { headers: this.buildHeaders() });
-      } catch (error) {
-        return {
-          ok: false,
-          error: { code: "fetch_failed", message: `network error: ${(error as Error).message}` },
-        };
-      }
-
-      if (!response.ok) {
-        const text = await safeReadText(response);
-        return { ok: false, error: classifyHttpError(response.status, response.headers, text) };
-      }
-
-      let body: RawPostsResponse;
-      try {
-        body = (await response.json()) as RawPostsResponse;
-      } catch (error) {
-        return {
-          ok: false,
-          error: {
-            code: "fetch_failed",
-            message: `invalid JSON from /users/:id/tweets: ${(error as Error).message}`,
-          },
-        };
-      }
-
-      const mediaMap = new Map<string, RawMedia>();
-      for (const media of body.includes?.media ?? []) {
-        mediaMap.set(media.media_key, media);
-      }
-
-      const usersMap = new Map<string, XUser>();
-      for (const rawUser of body.includes?.users ?? []) {
-        usersMap.set(rawUser.id, {
-          id: rawUser.id,
-          username: rawUser.username,
-          name: rawUser.name,
-          profileImageUrl: normalizeProfileImageUrl(rawUser.profile_image_url),
-        });
-      }
-
-      for (const raw of body.data ?? []) {
-        posts.push(buildXPostFromRaw(raw, usersMap, mediaMap));
-      }
-
-      page += 1;
-      nextToken = body.meta?.next_token;
+      posts.push(...pageResult.posts);
+      nextToken = pageResult.nextToken;
       if (!nextToken) {
         break;
       }
     }
 
     return { ok: true, posts };
+  }
+
+  private async fetchOnePage(userId: string, params: FetchOnePageParams): Promise<FetchOnePageResult> {
+    const { maxResults, includeReposts, includeReplies, sinceId, nextToken } = params;
+
+    const url = new URL(`${X_API_BASE}/users/${encodeURIComponent(userId)}/tweets`);
+    url.searchParams.set("max_results", String(maxResults));
+    url.searchParams.set("tweet.fields", "id,text,created_at,author_id,attachments");
+    url.searchParams.set("expansions", "author_id,attachments.media_keys");
+    url.searchParams.set("media.fields", "url,preview_image_url,type");
+    url.searchParams.set("user.fields", "id,username,name,profile_image_url");
+    const excludes: string[] = [];
+    if (!includeReposts) excludes.push("retweets");
+    if (!includeReplies) excludes.push("replies");
+    if (excludes.length > 0) {
+      url.searchParams.set("exclude", excludes.join(","));
+    }
+    if (sinceId) {
+      url.searchParams.set("since_id", sinceId);
+    }
+    if (nextToken) {
+      url.searchParams.set("pagination_token", nextToken);
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(url, { headers: this.buildHeaders() });
+    } catch (error) {
+      return {
+        ok: false,
+        error: { code: "fetch_failed", message: `network error: ${(error as Error).message}` },
+      };
+    }
+
+    if (!response.ok) {
+      const text = await safeReadText(response);
+      return { ok: false, error: classifyHttpError(response.status, response.headers, text) };
+    }
+
+    let body: RawPostsResponse;
+    try {
+      body = (await response.json()) as RawPostsResponse;
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: "fetch_failed",
+          message: `invalid JSON from /users/:id/tweets: ${(error as Error).message}`,
+        },
+      };
+    }
+
+    const mediaMap = new Map<string, RawMedia>();
+    for (const media of body.includes?.media ?? []) {
+      mediaMap.set(media.media_key, media);
+    }
+
+    const usersMap = new Map<string, XUser>();
+    for (const rawUser of body.includes?.users ?? []) {
+      usersMap.set(rawUser.id, {
+        id: rawUser.id,
+        username: rawUser.username,
+        name: rawUser.name,
+        profileImageUrl: normalizeProfileImageUrl(rawUser.profile_image_url),
+      });
+    }
+
+    const posts: XPost[] = [];
+    for (const raw of body.data ?? []) {
+      posts.push(buildXPostFromRaw(raw, usersMap, mediaMap));
+    }
+
+    return { ok: true, posts, nextToken: body.meta?.next_token };
   }
 
   private buildHeaders(): HeadersInit {
