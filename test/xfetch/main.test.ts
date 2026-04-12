@@ -39,6 +39,7 @@ describe("parseArgs", () => {
       includeReplies: false,
       patterns: [],
       invertMatch: false,
+      inlineMedia: false,
     });
   });
 
@@ -51,6 +52,7 @@ describe("parseArgs", () => {
       includeReplies: true,
       patterns: [],
       invertMatch: false,
+      inlineMedia: false,
     });
   });
 
@@ -63,6 +65,7 @@ describe("parseArgs", () => {
       includeReplies: false,
       patterns: [],
       invertMatch: false,
+      inlineMedia: false,
     });
   });
 
@@ -121,6 +124,11 @@ describe("parseArgs", () => {
   it("supports regexp special characters in -e patterns", () => {
     const options = parseArgs(makeArgv("-e", "^hello\\s+world$", "elon"));
     expect(options.patterns[0]).toEqual(/^hello\s+world$/);
+  });
+
+  it("parses --inline-media flag", () => {
+    const options = parseArgs(makeArgv("--inline-media", "elon"));
+    expect(options.inlineMedia).toBe(true);
   });
 
   it("strips a leading @ from usernames", () => {
@@ -190,6 +198,56 @@ describe("buildPostEntry", () => {
       profile_image_url: "https://pbs.twimg.com/profile_images/1/e_400x400.jpg",
     });
     expect(entry.media).toEqual([{ type: "photo", url: "https://pbs.twimg.com/media/a.jpg", preview_image_url: null }]);
+  });
+
+  it("does not modify text when inlineMedia is false (default)", () => {
+    const post = makePost("1", "2026-04-11T12:00:00.000Z", {
+      text: "hello",
+      media: [{ type: "photo", url: "https://pbs.twimg.com/media/a.jpg", previewImageUrl: null, mediaKey: "k1" }],
+    });
+    expect(buildPostEntry(post).text).toBe("hello");
+  });
+
+  it("appends photo url to text when inlineMedia is true", () => {
+    const post = makePost("1", "2026-04-11T12:00:00.000Z", {
+      text: "hello",
+      media: [{ type: "photo", url: "https://pbs.twimg.com/media/a.jpg", previewImageUrl: null, mediaKey: "k1" }],
+    });
+    expect(buildPostEntry(post, { inlineMedia: true }).text).toBe("hello\nhttps://pbs.twimg.com/media/a.jpg");
+  });
+
+  it("appends previewImageUrl when url is null (video/gif)", () => {
+    const post = makePost("2", "2026-04-11T12:00:00.000Z", {
+      text: "watch this",
+      media: [{ type: "video", url: null, previewImageUrl: "https://pbs.twimg.com/media/thumb.jpg", mediaKey: "k2" }],
+    });
+    expect(buildPostEntry(post, { inlineMedia: true }).text).toBe("watch this\nhttps://pbs.twimg.com/media/thumb.jpg");
+  });
+
+  it("appends multiple media urls separated by newlines", () => {
+    const post = makePost("3", "2026-04-11T12:00:00.000Z", {
+      text: "pics",
+      media: [
+        { type: "photo", url: "https://pbs.twimg.com/media/a.jpg", previewImageUrl: null, mediaKey: "k1" },
+        { type: "photo", url: "https://pbs.twimg.com/media/b.jpg", previewImageUrl: null, mediaKey: "k2" },
+      ],
+    });
+    expect(buildPostEntry(post, { inlineMedia: true }).text).toBe(
+      "pics\nhttps://pbs.twimg.com/media/a.jpg\nhttps://pbs.twimg.com/media/b.jpg",
+    );
+  });
+
+  it("does not append anything when all media urls are null", () => {
+    const post = makePost("4", "2026-04-11T12:00:00.000Z", {
+      text: "no urls",
+      media: [{ type: "video", url: null, previewImageUrl: null, mediaKey: "k1" }],
+    });
+    expect(buildPostEntry(post, { inlineMedia: true }).text).toBe("no urls");
+  });
+
+  it("does not modify text when there is no media", () => {
+    const post = makePost("5", "2026-04-11T12:00:00.000Z", { text: "plain text", media: [] });
+    expect(buildPostEntry(post, { inlineMedia: true }).text).toBe("plain text");
   });
 });
 
@@ -279,12 +337,14 @@ function makeClient(fetchImpl: (userId: string, opts?: FetchUserPostsOptions) =>
   };
 }
 
-const baseOptions: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch"> = {
-  includeReposts: true,
-  includeReplies: false,
-  patterns: [],
-  invertMatch: false,
-};
+const baseOptions: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch" | "inlineMedia"> =
+  {
+    includeReposts: true,
+    includeReplies: false,
+    patterns: [],
+    invertMatch: false,
+    inlineMedia: false,
+  };
 
 describe("processAccount", () => {
   it("returns baseline_established on first run without producing posts", async () => {

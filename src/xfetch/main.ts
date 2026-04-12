@@ -11,6 +11,7 @@ export interface RunOptions {
   includeReplies: boolean;
   patterns: RegExp[];
   invertMatch: boolean;
+  inlineMedia: boolean;
 }
 
 export interface AuthorInfo {
@@ -80,6 +81,7 @@ export function parseArgs(argv: string[]): RunOptions {
       "exclude-replies": { type: "boolean" },
       regexp: { type: "string", multiple: true, short: "e" },
       "invert-match": { type: "boolean", short: "v" },
+      "inline-media": { type: "boolean" },
     },
     allowPositionals: true,
   });
@@ -101,6 +103,7 @@ export function parseArgs(argv: string[]): RunOptions {
     includeReplies: values["exclude-replies"] ? false : (values["include-replies"] ?? false),
     patterns,
     invertMatch: values["invert-match"] ?? false,
+    inlineMedia: values["inline-media"] ?? false,
   };
 }
 
@@ -113,11 +116,18 @@ export function requireBearerToken(): string {
   return token;
 }
 
-export function buildPostEntry(post: XPost): PostEntry {
+export function buildPostEntry(post: XPost, options: { inlineMedia?: boolean } = {}): PostEntry {
+  let text = post.text;
+  if (options.inlineMedia && post.media.length > 0) {
+    const urls = post.media.map((m) => m.url ?? m.previewImageUrl).filter((url): url is string => url !== null);
+    if (urls.length > 0) {
+      text = `${text}\n${urls.join("\n")}`;
+    }
+  }
   return {
     id: post.id,
     url: `https://x.com/${post.author.username}/status/${post.id}`,
-    text: post.text,
+    text,
     created_at: post.createdAt,
     media: post.media.map((m) => ({
       type: m.type,
@@ -183,7 +193,7 @@ export async function processAccount(
   userId: string,
   state: XfetchState,
   client: XClientApi,
-  options: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch">,
+  options: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch" | "inlineMedia">,
 ): Promise<ProcessedAccount> {
   const previous = getAccountState(state, username);
   const isFirstRun = !previous || previous.lastSeenId === null;
@@ -237,7 +247,7 @@ export async function processAccount(
   return {
     accountResult: { username, status: "ok", newLastSeenId: newestId },
     posts: filterPostsByPattern(
-      posts.map((post) => buildPostEntry(post)),
+      posts.map((post) => buildPostEntry(post, { inlineMedia: options.inlineMedia })),
       options.patterns,
       options.invertMatch,
     ),
