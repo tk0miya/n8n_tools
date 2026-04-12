@@ -172,7 +172,6 @@ describe("XClient.fetchUserPosts", () => {
     expect(expansions).toContain("referenced_tweets.id");
     expect(expansions).toContain("referenced_tweets.id.author_id");
     const tweetFields = url.searchParams.get("tweet.fields") ?? "";
-    expect(tweetFields).toContain("entities");
     expect(tweetFields).toContain("referenced_tweets");
     expect(url.searchParams.get("user.fields")).toContain("profile_image_url");
   });
@@ -194,7 +193,6 @@ describe("XClient.fetchUserPosts", () => {
             text: "hi",
             created_at: "2026-04-11T00:00:00.000Z",
             author_id: "1",
-            lang: "en",
             attachments: { media_keys: ["m1"] },
           },
         ],
@@ -218,70 +216,9 @@ describe("XClient.fetchUserPosts", () => {
         mediaKey: "m1",
       },
     ]);
-    expect(result.posts[0].lang).toBe("en");
     expect(result.posts[0].author.username).toBe("elonmusk");
     expect(result.posts[0].repostedBy).toBeNull();
     expect(result.posts[0].sourcePostId).toBe("100");
-  });
-
-  it("maps entities.urls to XPost.urls", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: [
-          {
-            id: "100",
-            text: "check this out https://t.co/abc",
-            created_at: "2026-04-11T00:00:00.000Z",
-            author_id: "1",
-            entities: {
-              urls: [
-                {
-                  url: "https://t.co/abc",
-                  expanded_url: "https://example.com/page",
-                  display_url: "example.com/page",
-                },
-                {
-                  url: "https://t.co/no-expand",
-                },
-              ],
-            },
-          },
-        ],
-        meta: { result_count: 1 },
-      }),
-    );
-    const client = new XClient("token");
-    const result = await client.fetchUserPosts("1");
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("unexpected error");
-    expect(result.posts[0].urls).toEqual([
-      {
-        url: "https://t.co/abc",
-        expandedUrl: "https://example.com/page",
-        displayUrl: "example.com/page",
-      },
-    ]);
-  });
-
-  it("returns an empty urls array when the post has no entities field", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: [
-          {
-            id: "100",
-            text: "no links",
-            created_at: "2026-04-11T00:00:00.000Z",
-            author_id: "1",
-          },
-        ],
-        meta: { result_count: 1 },
-      }),
-    );
-    const client = new XClient("token");
-    const result = await client.fetchUserPosts("1");
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("unexpected error");
-    expect(result.posts[0].urls).toEqual([]);
   });
 
   it("resolves reposts from includes and swaps the author with the original poster", async () => {
@@ -307,16 +244,6 @@ describe("XClient.fetchUserPosts", () => {
               text: "full original text from sama",
               created_at: "2026-04-10T09:00:00.000Z",
               author_id: "sama_id",
-              lang: "en",
-              entities: {
-                urls: [
-                  {
-                    url: "https://t.co/link",
-                    expanded_url: "https://example.com/page",
-                    display_url: "example.com/page",
-                  },
-                ],
-              },
               attachments: { media_keys: ["m9"] },
             },
           ],
@@ -336,11 +263,9 @@ describe("XClient.fetchUserPosts", () => {
     expect(post.sourcePostId).toBe("1500"); // original id for URL generation
     expect(post.text).toBe("full original text from sama");
     expect(post.createdAt).toBe("2026-04-11T12:00:00.000Z"); // repost time, not original
-    expect(post.lang).toBe("en");
     expect(post.author.username).toBe("sama");
     expect(post.repostedBy?.username).toBe("elonmusk");
     expect(post.media.map((m) => m.mediaKey)).toEqual(["m9"]);
-    expect(post.urls.map((u) => u.expandedUrl)).toEqual(["https://example.com/page"]);
   });
 
   it("falls back to the reposter as author when the referenced post is missing from includes", async () => {
