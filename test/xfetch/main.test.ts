@@ -322,8 +322,7 @@ describe("processAccount", () => {
       capturedOpts = opts;
       return [makePost("999", "2026-04-11T12:00:00.000Z")];
     });
-    const state = emptyState();
-    const processed = await processAccount("elonmusk", "123", state, client, baseOptions);
+    const processed = await processAccount("elonmusk", "123", undefined, client, baseOptions);
     expect(processed.accountResult.status).toBe("baseline_established");
     expect(processed.accountResult.newLastSeenId).toBe("999");
     expect(processed.posts).toEqual([]);
@@ -342,12 +341,7 @@ describe("processAccount", () => {
       // Simulate sort: true — oldest first.
       return [makePost("199", "2026-04-11T11:00:00.000Z"), makePost("200", "2026-04-11T12:00:00.000Z")];
     });
-    const state = {
-      version: STATE_VERSION as 1,
-      accounts: {
-        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
-      },
-    };
+    const state = { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" };
     const processed = await processAccount("elonmusk", "123", state, client, baseOptions);
     expect(capturedOpts?.sinceId).toBe("100");
     // Subsequent runs should use the xClient defaults (page size / max pages).
@@ -364,12 +358,7 @@ describe("processAccount", () => {
 
   it("preserves cached lastSeenId on a subsequent run with no new posts", async () => {
     const client = makeClient(async () => []);
-    const state = {
-      version: STATE_VERSION as 1,
-      accounts: {
-        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
-      },
-    };
+    const state = { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" };
     const processed = await processAccount("elonmusk", "123", state, client, baseOptions);
     expect(processed.accountResult).toEqual({
       username: "elonmusk",
@@ -389,12 +378,7 @@ describe("processAccount", () => {
         error: { code: "rate_limited", message: "429", resetAt: "2026-04-11T13:00:00.000Z" },
       }),
     };
-    const state = {
-      version: STATE_VERSION as 1,
-      accounts: {
-        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
-      },
-    };
+    const state = { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" };
     const processed = await processAccount("elonmusk", "123", state, client, baseOptions);
     expect(processed.accountResult.status).toBe("error");
     expect(processed.errorEntry).toEqual({
@@ -408,7 +392,7 @@ describe("processAccount", () => {
 
   it("returns empty baseline when account has zero posts", async () => {
     const client = makeClient(async () => []);
-    const processed = await processAccount("elonmusk", "123", emptyState(), client, baseOptions);
+    const processed = await processAccount("elonmusk", "123", undefined, client, baseOptions);
     expect(processed.accountResult).toEqual({
       username: "elonmusk",
       status: "baseline_established",
@@ -421,12 +405,7 @@ describe("processAccount", () => {
       makePost("200", "2026-04-11T12:00:00.000Z", { text: "hello world" }),
       makePost("199", "2026-04-11T11:00:00.000Z", { text: "foo bar" }),
     ]);
-    const state = {
-      version: STATE_VERSION as 1,
-      accounts: {
-        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
-      },
-    };
+    const state = { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" };
     const processed = await processAccount("elonmusk", "123", state, client, {
       ...baseOptions,
       patterns: [/hello/],
@@ -440,12 +419,7 @@ describe("processAccount", () => {
       makePost("200", "2026-04-11T12:00:00.000Z", { text: "hello world" }),
       makePost("199", "2026-04-11T11:00:00.000Z", { text: "foo bar" }),
     ]);
-    const state = {
-      version: STATE_VERSION as 1,
-      accounts: {
-        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
-      },
-    };
+    const state = { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" };
     const processed = await processAccount("elonmusk", "123", state, client, {
       ...baseOptions,
       patterns: [/hello/],
@@ -462,12 +436,7 @@ describe("processAccount", () => {
       makePost("199", "2026-04-11T11:00:00.000Z", { text: "useful content" }),
       makePost("200", "2026-04-11T12:00:00.000Z", { text: "spam content" }),
     ]);
-    const state = {
-      version: STATE_VERSION as 1,
-      accounts: {
-        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
-      },
-    };
+    const state = { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" };
     const processed = await processAccount("elonmusk", "123", state, client, {
       ...baseOptions,
       patterns: [/spam/],

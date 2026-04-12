@@ -188,12 +188,11 @@ interface ProcessedAccount {
 export async function processAccount(
   username: string,
   userId: string,
-  state: XfetchState,
+  state: AccountState | undefined,
   client: XClientApi,
   options: Pick<RunOptions, "includeReposts" | "includeReplies" | "patterns" | "invertMatch">,
 ): Promise<ProcessedAccount> {
-  const previous = getAccountState(state, username);
-  const isFirstRun = !previous || previous.lastSeenId === null;
+  const isFirstRun = !state || state.lastSeenId === null;
 
   const fetchOptions: FetchUserPostsOptions = {
     includeReposts: options.includeReposts,
@@ -206,7 +205,7 @@ export async function processAccount(
     fetchOptions.maxResults = 5;
     fetchOptions.maxPages = 1;
   } else {
-    fetchOptions.sinceId = previous?.lastSeenId ?? null;
+    fetchOptions.sinceId = state?.lastSeenId ?? null;
   }
 
   const result = await client.fetchUserPosts(userId, fetchOptions);
@@ -234,7 +233,7 @@ export async function processAccount(
   }
 
   // sort: true returns posts oldest-first; the last element is the newest.
-  const newestId = posts.at(-1)?.id ?? previous?.lastSeenId ?? null;
+  const newestId = posts.at(-1)?.id ?? state?.lastSeenId ?? null;
 
   return {
     accountResult: { username, status: "ok", newLastSeenId: newestId },
@@ -317,7 +316,7 @@ export async function run(options: RunOptions): Promise<number> {
     .filter((t): t is { username: string; userId: string } => t !== null);
 
   const settled = await Promise.allSettled(
-    tasks.map((t) => processAccount(t.username, t.userId, state, client, options)),
+    tasks.map((t) => processAccount(t.username, t.userId, getAccountState(state, t.username), client, options)),
   );
 
   for (let i = 0; i < settled.length; i += 1) {
