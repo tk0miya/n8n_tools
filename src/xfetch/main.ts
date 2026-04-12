@@ -1,5 +1,5 @@
 import { parseArgs as nodeParseArgs } from "node:util";
-import type { AccountRunResult, TwcheckState } from "./state.js";
+import type { AccountRunResult, XfetchState } from "./state.js";
 import { getAccountState, getDefaultStatePath, loadState, mergeStateAfterRun, saveState } from "./state.js";
 import type { FetchUserTweetsOptions, XClientApi, XError, XTweet, XUser } from "./xClient.js";
 import { XClient } from "./xClient.js";
@@ -105,7 +105,7 @@ export function parseArgs(argv: string[]): RunOptions {
 
   return {
     usernames: positionals.map(parseUsername),
-    statePath: values.state ?? process.env.TWCHECK_STATE_FILE ?? getDefaultStatePath(),
+    statePath: values.state ?? process.env.XFETCH_STATE_FILE ?? getDefaultStatePath(),
     includeRetweets: values["exclude-retweets"] ? false : (values["include-retweets"] ?? true),
     includeReplies: values["exclude-replies"] ? false : (values["include-replies"] ?? false),
     patterns,
@@ -201,7 +201,7 @@ interface ProcessedAccount {
 export async function processAccount(
   username: string,
   user: XUser,
-  state: TwcheckState,
+  state: XfetchState,
   client: XClientApi,
   options: Pick<RunOptions, "includeRetweets" | "includeReplies" | "patterns" | "invertMatch">,
 ): Promise<ProcessedAccount> {
@@ -267,7 +267,7 @@ export async function run(options: RunOptions): Promise<void> {
   if (options.usernames.length === 0) {
     console.error(
       JSON.stringify({
-        error: "No usernames specified. Usage: twcheck [options] <username1> [username2 ...]",
+        error: "No usernames specified. Usage: xfetch [options] <username1> [username2 ...]",
       }),
     );
     process.exit(1);

@@ -1,5 +1,5 @@
 import { aroundEach, describe, expect, it } from "vitest";
-import type { PostEntry, RunOptions } from "@/twcheck/main.js";
+import type { PostEntry, RunOptions } from "@/xfetch/main.js";
 import {
   buildPostEntry,
   buildRunOutput,
@@ -8,9 +8,9 @@ import {
   parseUsername,
   processAccount,
   sortPostsChronologically,
-} from "@/twcheck/main.js";
-import { emptyState, STATE_VERSION } from "@/twcheck/state.js";
-import type { FetchUserTweetsOptions, XClientApi, XTweet, XUser } from "@/twcheck/xClient.js";
+} from "@/xfetch/main.js";
+import { emptyState, STATE_VERSION } from "@/xfetch/state.js";
+import type { FetchUserTweetsOptions, XClientApi, XTweet, XUser } from "@/xfetch/xClient.js";
 
 // ── parseArgs ────────────────────────────────────────────────
 
@@ -19,21 +19,21 @@ describe("parseArgs", () => {
 
   aroundEach(async (test) => {
     const savedXdgStateHome = process.env.XDG_STATE_HOME;
-    const savedTwcheckState = process.env.TWCHECK_STATE_FILE;
+    const savedXfetchState = process.env.XFETCH_STATE_FILE;
     process.env.XDG_STATE_HOME = "/xdg/state";
-    delete process.env.TWCHECK_STATE_FILE;
+    delete process.env.XFETCH_STATE_FILE;
     await test();
     if (savedXdgStateHome === undefined) delete process.env.XDG_STATE_HOME;
     else process.env.XDG_STATE_HOME = savedXdgStateHome;
-    if (savedTwcheckState === undefined) delete process.env.TWCHECK_STATE_FILE;
-    else process.env.TWCHECK_STATE_FILE = savedTwcheckState;
+    if (savedXfetchState === undefined) delete process.env.XFETCH_STATE_FILE;
+    else process.env.XFETCH_STATE_FILE = savedXfetchState;
   });
 
   it("returns defaults when only positional usernames are given", () => {
     const options = parseArgs(makeArgv("elonmusk", "sama"));
     expect(options).toEqual({
       usernames: ["elonmusk", "sama"],
-      statePath: "/xdg/state/twcheck/state.json",
+      statePath: "/xdg/state/xfetch/state.json",
       includeRetweets: true,
       includeReplies: false,
       patterns: [],
@@ -57,7 +57,7 @@ describe("parseArgs", () => {
     const options = parseArgs(makeArgv("--exclude-retweets", "--exclude-replies", "elon"));
     expect(options).toEqual({
       usernames: ["elon"],
-      statePath: "/xdg/state/twcheck/state.json",
+      statePath: "/xdg/state/xfetch/state.json",
       includeRetweets: false,
       includeReplies: false,
       patterns: [],
@@ -65,21 +65,21 @@ describe("parseArgs", () => {
     });
   });
 
-  it("uses TWCHECK_STATE_FILE env var when --state is not specified", () => {
-    process.env.TWCHECK_STATE_FILE = "/env/state.json";
+  it("uses XFETCH_STATE_FILE env var when --state is not specified", () => {
+    process.env.XFETCH_STATE_FILE = "/env/state.json";
     const options = parseArgs(makeArgv("elon"));
     expect(options.statePath).toBe("/env/state.json");
   });
 
-  it("--state argument takes precedence over TWCHECK_STATE_FILE env var", () => {
-    process.env.TWCHECK_STATE_FILE = "/env/state.json";
+  it("--state argument takes precedence over XFETCH_STATE_FILE env var", () => {
+    process.env.XFETCH_STATE_FILE = "/env/state.json";
     const options = parseArgs(makeArgv("--state", "/arg/state.json", "elon"));
     expect(options.statePath).toBe("/arg/state.json");
   });
 
-  it("falls back to XDG default when neither --state nor TWCHECK_STATE_FILE is set", () => {
+  it("falls back to XDG default when neither --state nor XFETCH_STATE_FILE is set", () => {
     const options = parseArgs(makeArgv("elon"));
-    expect(options.statePath).toBe("/xdg/state/twcheck/state.json");
+    expect(options.statePath).toBe("/xdg/state/xfetch/state.json");
   });
 
   it("exclude-* takes precedence over include-* when both are set", () => {
