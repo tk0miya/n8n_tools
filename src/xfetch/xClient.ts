@@ -18,11 +18,6 @@ export interface XUser {
   profileImageUrl: string | null;
 }
 
-export interface XUserLookup {
-  found: Map<string, XUser>; // key = lowercase username
-  missing: string[]; // lowercase usernames
-}
-
 export interface XMediaEntry {
   type: string;
   url: string | null;
@@ -60,7 +55,7 @@ export type FetchUserPostsResult = FetchUserPostsSuccess | FetchUserPostsFailure
 
 export interface LookupUsersSuccess {
   ok: true;
-  result: XUserLookup;
+  found: Map<string, string>; // key = lowercase username, value = user id
 }
 
 export interface LookupUsersFailure {
@@ -203,17 +198,16 @@ export class XClient {
   async lookupUsers(usernames: readonly string[]): Promise<LookupUsersResult> {
     const unique = Array.from(new Set(usernames.map((u) => u.toLowerCase()))).filter((u) => u.length > 0);
     if (unique.length === 0) {
-      return { ok: true, result: { found: new Map(), missing: [] } };
+      return { ok: true, found: new Map() };
     }
 
-    const found = new Map<string, XUser>();
-    const missing = new Set<string>(unique);
+    const found = new Map<string, string>();
 
     for (let i = 0; i < unique.length; i += USER_LOOKUP_BATCH_SIZE) {
       const batch = unique.slice(i, i + USER_LOOKUP_BATCH_SIZE);
       const url = new URL(`${X_API_BASE}/users/by`);
       url.searchParams.set("usernames", batch.join(","));
-      url.searchParams.set("user.fields", "id,username,name,profile_image_url");
+      url.searchParams.set("user.fields", "id,username");
 
       let response: Response;
       try {
@@ -241,18 +235,11 @@ export class XClient {
       }
 
       for (const user of body.data ?? []) {
-        const key = user.username.toLowerCase();
-        found.set(key, {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          profileImageUrl: normalizeProfileImageUrl(user.profile_image_url),
-        });
-        missing.delete(key);
+        found.set(user.username.toLowerCase(), user.id);
       }
     }
 
-    return { ok: true, result: { found, missing: Array.from(missing) } };
+    return { ok: true, found };
   }
 
   async fetchUserPosts(userId: string, options: FetchUserPostsOptions = {}): Promise<FetchUserPostsResult> {

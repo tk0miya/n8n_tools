@@ -280,7 +280,7 @@ describe("buildRunOutput", () => {
 
 function makeClient(fetchImpl: (userId: string, opts?: FetchUserPostsOptions) => Promise<XPost[]>): XClientApi {
   return {
-    lookupUsers: async () => ({ ok: true, result: { found: new Map(), missing: [] } }),
+    lookupUsers: async () => ({ ok: true, found: new Map() }),
     fetchUserPosts: async (userId, opts) => {
       const posts = await fetchImpl(userId, opts);
       return { ok: true as const, posts };
@@ -303,7 +303,7 @@ describe("processAccount", () => {
       return [makePost("999", "2026-04-11T12:00:00.000Z")];
     });
     const state = emptyState();
-    const processed = await processAccount("elonmusk", sampleUser, state, client, baseOptions);
+    const processed = await processAccount("elonmusk", "123", state, client, baseOptions);
     expect(processed.accountResult.status).toBe("baseline_established");
     expect(processed.accountResult.newLastSeenId).toBe("999");
     expect(processed.posts).toEqual([]);
@@ -326,7 +326,7 @@ describe("processAccount", () => {
         elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
       },
     };
-    const processed = await processAccount("elonmusk", sampleUser, state, client, baseOptions);
+    const processed = await processAccount("elonmusk", "123", state, client, baseOptions);
     expect(capturedOpts?.sinceId).toBe("100");
     // Subsequent runs should use the xClient defaults (page size / max pages).
     expect(capturedOpts?.maxResults).toBeUndefined();
@@ -347,7 +347,7 @@ describe("processAccount", () => {
         elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
       },
     };
-    const processed = await processAccount("elonmusk", sampleUser, state, client, baseOptions);
+    const processed = await processAccount("elonmusk", "123", state, client, baseOptions);
     expect(processed.accountResult).toEqual({
       username: "elonmusk",
       status: "ok",
@@ -360,7 +360,7 @@ describe("processAccount", () => {
 
   it("returns an error entry when fetchUserPosts fails", async () => {
     const client: XClientApi = {
-      lookupUsers: async () => ({ ok: true, result: { found: new Map(), missing: [] } }),
+      lookupUsers: async () => ({ ok: true, found: new Map() }),
       fetchUserPosts: async () => ({
         ok: false,
         error: { code: "rate_limited", message: "429", resetAt: "2026-04-11T13:00:00.000Z" },
@@ -372,7 +372,7 @@ describe("processAccount", () => {
         elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
       },
     };
-    const processed = await processAccount("elonmusk", sampleUser, state, client, baseOptions);
+    const processed = await processAccount("elonmusk", "123", state, client, baseOptions);
     expect(processed.accountResult.status).toBe("error");
     expect(processed.errorEntry).toEqual({
       username: "elonmusk",
@@ -385,7 +385,7 @@ describe("processAccount", () => {
 
   it("returns empty baseline when account has zero posts", async () => {
     const client = makeClient(async () => []);
-    const processed = await processAccount("elonmusk", sampleUser, emptyState(), client, baseOptions);
+    const processed = await processAccount("elonmusk", "123", emptyState(), client, baseOptions);
     expect(processed.accountResult).toEqual({
       username: "elonmusk",
       status: "baseline_established",
@@ -404,7 +404,7 @@ describe("processAccount", () => {
         elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
       },
     };
-    const processed = await processAccount("elonmusk", sampleUser, state, client, {
+    const processed = await processAccount("elonmusk", "123", state, client, {
       ...baseOptions,
       patterns: [/hello/],
       invertMatch: false,
@@ -423,7 +423,7 @@ describe("processAccount", () => {
         elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
       },
     };
-    const processed = await processAccount("elonmusk", sampleUser, state, client, {
+    const processed = await processAccount("elonmusk", "123", state, client, {
       ...baseOptions,
       patterns: [/hello/],
       invertMatch: true,
@@ -444,7 +444,7 @@ describe("processAccount", () => {
         elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-10T00:00:00.000Z" },
       },
     };
-    const processed = await processAccount("elonmusk", sampleUser, state, client, {
+    const processed = await processAccount("elonmusk", "123", state, client, {
       ...baseOptions,
       patterns: [/spam/],
       invertMatch: true,
