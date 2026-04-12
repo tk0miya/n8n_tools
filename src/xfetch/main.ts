@@ -114,12 +114,16 @@ export function requireBearerToken(): string {
   return token;
 }
 
+export function stripTrailingMediaUrl(text: string): string {
+  return text.replace(/\s+https:\/\/t\.co\/\S+$/, "");
+}
+
 export function buildPostEntry(post: XPost, options: { inlineMedia?: boolean } = {}): PostEntry {
   let text = post.text;
   if (options.inlineMedia && post.media.length > 0) {
     const urls = post.media.map((m) => m.url ?? m.previewImageUrl).filter((url): url is string => url !== null);
     if (urls.length > 0) {
-      text = `${text}\n${urls.join("\n")}`;
+      text = `${stripTrailingMediaUrl(text)}\n${urls.join("\n")}`;
     }
   }
   return {
