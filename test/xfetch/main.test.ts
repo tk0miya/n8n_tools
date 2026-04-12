@@ -164,17 +164,15 @@ const sampleUser: XUser = {
 
 const makePost = (id: string, createdAt: string, extra: Partial<XPost> = {}): XPost => ({
   id,
-  sourcePostId: id,
   text: `post ${id}`,
   createdAt,
   author: sampleUser,
-  repostedBy: null,
   media: [],
   ...extra,
 });
 
 describe("buildPostEntry", () => {
-  it("builds the post url from the post author username and sourcePostId", () => {
+  it("builds the post url from the post author username and id", () => {
     const entry = buildPostEntry(makePost("9001", "2026-04-11T12:00:00.000Z"));
     expect(entry.url).toBe("https://x.com/elonmusk/status/9001");
   });
@@ -191,45 +189,6 @@ describe("buildPostEntry", () => {
       profile_image_url: "https://pbs.twimg.com/profile_images/1/e_400x400.jpg",
     });
     expect(entry.media).toEqual([{ type: "photo", url: "https://pbs.twimg.com/media/a.jpg", preview_image_url: null }]);
-  });
-
-  it("defaults reposted_by to null for normal posts", () => {
-    const entry = buildPostEntry(makePost("1", "2026-04-11T12:00:00.000Z"));
-    expect(entry.reposted_by).toBeNull();
-  });
-
-  it("surfaces the original author in author and the reposter in reposted_by for reposts", () => {
-    const originalAuthor: XUser = {
-      id: "999",
-      username: "sama",
-      name: "Sam",
-      profileImageUrl: "https://pbs.twimg.com/profile_images/2/s_400x400.jpg",
-    };
-    const post: XPost = {
-      id: "1700", // repost entry id on elonmusk's timeline
-      sourcePostId: "1500", // original post id by sama
-      text: "full original text",
-      createdAt: "2026-04-11T12:00:00.000Z",
-      author: originalAuthor,
-      repostedBy: sampleUser,
-      media: [],
-    };
-    const entry = buildPostEntry(post);
-    expect(entry.id).toBe("1700");
-    expect(entry.url).toBe("https://x.com/sama/status/1500");
-    expect(entry.text).toBe("full original text");
-    expect(entry.author).toEqual({
-      id: "999",
-      username: "sama",
-      name: "Sam",
-      profile_image_url: "https://pbs.twimg.com/profile_images/2/s_400x400.jpg",
-    });
-    expect(entry.reposted_by).toEqual({
-      id: "123",
-      username: "elonmusk",
-      name: "Elon",
-      profile_image_url: "https://pbs.twimg.com/profile_images/1/e_400x400.jpg",
-    });
   });
 });
 
