@@ -9,6 +9,8 @@ export interface RunOptions {
   statePath: string;
   includeRetweets: boolean;
   includeReplies: boolean;
+  patterns: RegExp[];
+  invertMatch: boolean;
 }
 
 export interface AuthorInfo {
@@ -85,15 +87,29 @@ export function parseArgs(argv: string[]): RunOptions {
       "exclude-retweets": { type: "boolean" },
       "include-replies": { type: "boolean" },
       "exclude-replies": { type: "boolean" },
+      regexp: { type: "string", multiple: true, short: "e" },
+      "invert-match": { type: "boolean", short: "v" },
     },
     allowPositionals: true,
   });
+
+  const patterns: RegExp[] = [];
+  for (const p of values.regexp ?? []) {
+    try {
+      patterns.push(new RegExp(p));
+    } catch {
+      console.error(`Error: invalid regexp pattern: ${p}`);
+      process.exit(1);
+    }
+  }
 
   return {
     usernames: positionals.map(parseUsername),
     statePath: values.state ?? DEFAULT_STATE_PATH,
     includeRetweets: values["exclude-retweets"] ? false : (values["include-retweets"] ?? true),
     includeReplies: values["exclude-replies"] ? false : (values["include-replies"] ?? false),
+    patterns,
+    invertMatch: values["invert-match"] ?? false,
   };
 }
 
@@ -135,6 +151,14 @@ function toAuthorInfo(user: XUser): AuthorInfo {
     name: user.name,
     profile_image_url: user.profileImageUrl,
   };
+}
+
+export function filterPostsByPattern(posts: PostEntry[], patterns: RegExp[], invertMatch: boolean): PostEntry[] {
+  if (patterns.length === 0) return posts;
+  return posts.filter((post) => {
+    const anyMatch = patterns.some((p) => p.test(post.text));
+    return invertMatch ? !anyMatch : anyMatch;
+  });
 }
 
 export function sortPostsChronologically(posts: PostEntry[]): PostEntry[] {
@@ -179,7 +203,7 @@ export async function processAccount(
   user: XUser,
   state: TwcheckState,
   client: XClientApi,
-  options: Pick<RunOptions, "includeRetweets" | "includeReplies">,
+  options: Pick<RunOptions, "includeRetweets" | "includeReplies" | "patterns" | "invertMatch">,
 ): Promise<ProcessedAccount> {
   const previous = getAccountState(state, username);
   const isFirstRun = !previous || previous.lastSeenId === null;
@@ -229,7 +253,11 @@ export async function processAccount(
 
   return {
     accountResult: { username, status: "ok", newLastSeenId: newestId },
-    posts: tweets.map((tweet) => buildPostEntry(tweet)),
+    posts: filterPostsByPattern(
+      tweets.map((tweet) => buildPostEntry(tweet)),
+      options.patterns,
+      options.invertMatch,
+    ),
     errorEntry: null,
     baselineEstablished: false,
   };
