@@ -63,6 +63,19 @@ export interface RunOutput {
   summary: RunSummary;
 }
 
+export function parseUsername(input: string): string {
+  try {
+    const url = new URL(input);
+    if (url.hostname === "x.com" || url.hostname === "twitter.com") {
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (parts.length > 0) return parts[0];
+    }
+  } catch {
+    // Not a URL
+  }
+  return input.replace(/^@/, "");
+}
+
 export function parseArgs(argv: string[]): RunOptions {
   const { values, positionals } = nodeParseArgs({
     args: argv.slice(2),
@@ -77,7 +90,7 @@ export function parseArgs(argv: string[]): RunOptions {
   });
 
   return {
-    usernames: positionals.map((u) => u.replace(/^@/, "")),
+    usernames: positionals.map(parseUsername),
     statePath: values.state ?? DEFAULT_STATE_PATH,
     includeRetweets: values["exclude-retweets"] ? false : (values["include-retweets"] ?? true),
     includeReplies: values["exclude-replies"] ? false : (values["include-replies"] ?? false),
