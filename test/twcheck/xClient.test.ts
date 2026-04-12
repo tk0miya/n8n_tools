@@ -155,7 +155,7 @@ describe("XClient.fetchUserTweets", () => {
     vi.unstubAllGlobals();
   });
 
-  it("passes since_id, max_results and default excludes", async () => {
+  it("passes since_id, max_results and default excludes (replies only by default)", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: [], meta: { result_count: 0 } }));
     const client = new XClient("token");
     const result = await client.fetchUserTweets("123", { sinceId: "999" });
@@ -165,7 +165,7 @@ describe("XClient.fetchUserTweets", () => {
     expect(url.pathname).toBe("/2/users/123/tweets");
     expect(url.searchParams.get("since_id")).toBe("999");
     expect(url.searchParams.get("max_results")).toBe("100");
-    expect(url.searchParams.get("exclude")).toBe("retweets,replies");
+    expect(url.searchParams.get("exclude")).toBe("replies");
     const expansions = url.searchParams.get("expansions") ?? "";
     expect(expansions).toContain("author_id");
     expect(expansions).toContain("attachments.media_keys");
