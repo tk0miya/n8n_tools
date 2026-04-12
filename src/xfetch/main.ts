@@ -1,6 +1,6 @@
 import { parseArgs as nodeParseArgs } from "node:util";
-import type { AccountRunResult, XfetchState } from "./state.js";
-import { getAccountState, getDefaultStatePath, loadState, mergeStateAfterRun, saveState } from "./state.js";
+import type { AccountState, XfetchState } from "./state.js";
+import { getAccountState, getDefaultStatePath, loadState, STATE_VERSION, saveState } from "./state.js";
 import type { FetchUserPostsOptions, XClientApi, XError, XPost, XUser } from "./xClient.js";
 import { XClient } from "./xClient.js";
 
@@ -175,6 +175,12 @@ export function buildRunOutput(
   };
 }
 
+export interface AccountRunResult {
+  username: string;
+  status: "ok" | "baseline_established" | "error";
+  newLastSeenId?: string | null;
+}
+
 interface ProcessedAccount {
   accountResult: AccountRunResult;
   posts: PostEntry[];
@@ -245,6 +251,29 @@ export async function processAccount(
     errorEntry: null,
     baselineEstablished: false,
   };
+}
+
+export function mergeStateAfterRun(
+  state: XfetchState,
+  results: readonly AccountRunResult[],
+  now: Date = new Date(),
+): XfetchState {
+  const nowIso = now.toISOString();
+  const accounts: Record<string, AccountState> = { ...state.accounts };
+
+  for (const result of results) {
+    if (result.status === "error") {
+      continue;
+    }
+    const key = result.username.toLowerCase();
+    const previous = accounts[key];
+    accounts[key] = {
+      lastSeenId: result.newLastSeenId ?? previous?.lastSeenId ?? null,
+      lastCheckedAt: nowIso,
+    };
+  }
+
+  return { version: STATE_VERSION, accounts };
 }
 
 export async function run(options: RunOptions): Promise<void> {

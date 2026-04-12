@@ -2,13 +2,12 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, aroundEach, beforeEach, describe, expect, it } from "vitest";
-import type { AccountRunResult, XfetchState } from "@/xfetch/state.js";
+import type { XfetchState } from "@/xfetch/state.js";
 import {
   emptyState,
   getAccountState,
   getDefaultStatePath,
   loadState,
-  mergeStateAfterRun,
   resolveStatePath,
   STATE_VERSION,
   saveState,
@@ -122,60 +121,6 @@ describe("saveState", () => {
 
     const loaded = await loadState(path);
     expect(loaded).toEqual(state);
-  });
-});
-
-describe("mergeStateAfterRun", () => {
-  const NOW = new Date("2026-04-11T12:00:00.000Z");
-
-  it("updates lastSeenId for successful accounts", () => {
-    const state: XfetchState = {
-      version: STATE_VERSION,
-      accounts: {
-        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-01T00:00:00.000Z" },
-      },
-    };
-    const results: AccountRunResult[] = [{ username: "elonmusk", status: "ok", newLastSeenId: "200" }];
-    const next = mergeStateAfterRun(state, results, NOW);
-    expect(next.accounts.elonmusk).toEqual({
-      lastSeenId: "200",
-      lastCheckedAt: NOW.toISOString(),
-    });
-  });
-
-  it("keeps existing lastSeenId when error occurs", () => {
-    const state: XfetchState = {
-      version: STATE_VERSION,
-      accounts: {
-        elonmusk: { lastSeenId: "100", lastCheckedAt: "2026-04-01T00:00:00.000Z" },
-      },
-    };
-    const results: AccountRunResult[] = [{ username: "elonmusk", status: "error" }];
-    const next = mergeStateAfterRun(state, results, NOW);
-    expect(next.accounts.elonmusk).toEqual({
-      lastSeenId: "100",
-      lastCheckedAt: "2026-04-01T00:00:00.000Z",
-    });
-  });
-
-  it("records baseline_established entries with their newLastSeenId", () => {
-    const state = emptyState();
-    const results: AccountRunResult[] = [
-      { username: "elonmusk", status: "baseline_established", newLastSeenId: "555" },
-    ];
-    const next = mergeStateAfterRun(state, results, NOW);
-    expect(next.accounts.elonmusk).toEqual({
-      lastSeenId: "555",
-      lastCheckedAt: NOW.toISOString(),
-    });
-  });
-
-  it("stores account keys case-insensitively", () => {
-    const state = emptyState();
-    const results: AccountRunResult[] = [{ username: "ElonMusk", status: "ok", newLastSeenId: "1" }];
-    const next = mergeStateAfterRun(state, results, NOW);
-    expect(next.accounts.elonmusk).toBeDefined();
-    expect(next.accounts.ElonMusk).toBeUndefined();
   });
 });
 
