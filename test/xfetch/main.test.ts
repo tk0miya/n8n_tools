@@ -167,11 +167,9 @@ const makePost = (id: string, createdAt: string, extra: Partial<XPost> = {}): XP
   sourcePostId: id,
   text: `post ${id}`,
   createdAt,
-  lang: "en",
   author: sampleUser,
   repostedBy: null,
   media: [],
-  urls: [],
   ...extra,
 });
 
@@ -200,27 +198,6 @@ describe("buildPostEntry", () => {
     expect(entry.reposted_by).toBeNull();
   });
 
-  it("maps post entities.urls to post urls with snake_case keys", () => {
-    const post = makePost("5", "2026-04-11T12:00:00.000Z", {
-      urls: [
-        {
-          url: "https://t.co/abc",
-          expandedUrl: "https://example.com/page",
-          displayUrl: "example.com/page",
-        },
-      ],
-    });
-    const entry = buildPostEntry(post);
-    expect(entry.urls).toEqual([
-      { url: "https://t.co/abc", expanded_url: "https://example.com/page", display_url: "example.com/page" },
-    ]);
-  });
-
-  it("returns an empty urls array when the post has no link entities", () => {
-    const entry = buildPostEntry(makePost("1", "2026-04-11T12:00:00.000Z"));
-    expect(entry.urls).toEqual([]);
-  });
-
   it("surfaces the original author in author and the reposter in reposted_by for reposts", () => {
     const originalAuthor: XUser = {
       id: "999",
@@ -233,11 +210,9 @@ describe("buildPostEntry", () => {
       sourcePostId: "1500", // original post id by sama
       text: "full original text",
       createdAt: "2026-04-11T12:00:00.000Z",
-      lang: "en",
       author: originalAuthor,
       repostedBy: sampleUser,
       media: [],
-      urls: [],
     };
     const entry = buildPostEntry(post);
     expect(entry.id).toBe("1700");

@@ -30,22 +30,14 @@ export interface XMediaEntry {
   mediaKey: string;
 }
 
-export interface XUrlEntry {
-  url: string; // the t.co URL as it appears in the post text
-  expandedUrl: string; // the fully expanded destination URL
-  displayUrl: string; // the display-friendly URL shown in clients
-}
-
 export interface XPost {
   id: string;
   sourcePostId: string; // original post id; same as `id` unless this is a repost
   text: string;
   createdAt: string;
-  lang: string | null;
   author: XUser; // effective author: for reposts this is the original poster
   repostedBy: XUser | null; // set only when the timeline entry is a repost
   media: XMediaEntry[];
-  urls: XUrlEntry[];
 }
 
 export interface FetchUserPostsOptions {
@@ -94,12 +86,6 @@ interface RawMedia {
   preview_image_url?: string;
 }
 
-interface RawUrlEntity {
-  url: string;
-  expanded_url?: string;
-  display_url?: string;
-}
-
 interface RawReferencedPost {
   type: string; // "retweeted" | "quoted" | "replied_to"
   id: string;
@@ -110,9 +96,7 @@ interface RawPost {
   text: string;
   created_at: string;
   author_id: string;
-  lang?: string;
   attachments?: { media_keys?: string[] };
-  entities?: { urls?: RawUrlEntity[] };
   referenced_tweets?: RawReferencedPost[];
 }
 
@@ -208,19 +192,6 @@ function mapRawMedia(mediaKeys: readonly string[] | undefined, mediaMap: Readonl
     .filter((m): m is XMediaEntry => m !== null);
 }
 
-function mapRawUrls(entities: RawPost["entities"]): XUrlEntry[] {
-  return (entities?.urls ?? [])
-    .map((entry): XUrlEntry | null => {
-      if (!entry.expanded_url) return null;
-      return {
-        url: entry.url,
-        expandedUrl: entry.expanded_url,
-        displayUrl: entry.display_url ?? entry.expanded_url,
-      };
-    })
-    .filter((u): u is XUrlEntry => u !== null);
-}
-
 /**
  * Converts a single raw timeline entry into the internal {@link XPost}
  * shape, resolving repost indirection so callers always see the original
@@ -257,11 +228,9 @@ export function buildXPostFromRaw(
     sourcePostId: contentSource.id,
     text: contentSource.text,
     createdAt: raw.created_at,
-    lang: contentSource.lang ?? null,
     author,
     repostedBy,
     media: mapRawMedia(contentSource.attachments?.media_keys, mediaMap),
-    urls: mapRawUrls(contentSource.entities),
   };
 }
 
@@ -339,7 +308,7 @@ export class XClient {
     while (page < maxPages) {
       const url = new URL(`${X_API_BASE}/users/${encodeURIComponent(userId)}/tweets`);
       url.searchParams.set("max_results", String(maxResults));
-      url.searchParams.set("tweet.fields", "id,text,created_at,author_id,lang,attachments,entities,referenced_tweets");
+      url.searchParams.set("tweet.fields", "id,text,created_at,author_id,attachments,referenced_tweets");
       url.searchParams.set(
         "expansions",
         "author_id,attachments.media_keys,referenced_tweets.id,referenced_tweets.id.author_id",

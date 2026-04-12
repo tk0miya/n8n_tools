@@ -26,20 +26,12 @@ export interface MediaInfo {
   preview_image_url: string | null;
 }
 
-export interface UrlInfo {
-  url: string;
-  expanded_url: string;
-  display_url: string;
-}
-
 export interface PostEntry {
   id: string;
   url: string;
   text: string;
   created_at: string;
-  lang: string | null;
   media: MediaInfo[];
-  urls: UrlInfo[];
   author: AuthorInfo;
   reposted_by: AuthorInfo | null;
 }
@@ -128,16 +120,10 @@ export function buildPostEntry(post: XPost): PostEntry {
     url: `https://x.com/${encodeURIComponent(post.author.username)}/status/${post.sourcePostId}`,
     text: post.text,
     created_at: post.createdAt,
-    lang: post.lang,
     media: post.media.map((m) => ({
       type: m.type,
       url: m.url,
       preview_image_url: m.previewImageUrl,
-    })),
-    urls: post.urls.map((u) => ({
-      url: u.url,
-      expanded_url: u.expandedUrl,
-      display_url: u.displayUrl,
     })),
     author: toAuthorInfo(post.author),
     reposted_by: post.repostedBy ? toAuthorInfo(post.repostedBy) : null,
