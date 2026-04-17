@@ -1,7 +1,7 @@
 import { parseArgs as nodeParseArgs } from "node:util";
 import type { Device } from "castv2-player";
 import { MediaPlayer, Scanner } from "castv2-player";
-import { getAllAudioUrls } from "google-tts-api";
+import { getAllAudioUrls } from "./googleTts.js";
 
 const silentLogger = {
   error: () => {},
