@@ -46,14 +46,14 @@ describe("parseArgs", () => {
 describe("extractArticles", () => {
   it("extracts articles from heading-wrapped links", () => {
     const html = `
-      <main>
+      <section class="section-archive-list">
         <h2 class="entry-title">
           <a href="https://trafficnews.jp/post/12345">道路工事のお知らせ</a>
         </h2>
         <h2 class="entry-title">
           <a href="https://trafficnews.jp/post/67890">新しい高速道路が開通</a>
         </h2>
-      </main>
+      </section>
     `;
     const articles = extractArticles(html);
     expect(articles).toHaveLength(2);
@@ -61,13 +61,13 @@ describe("extractArticles", () => {
     expect(articles[1]).toEqual({ title: "新しい高速道路が開通", url: "https://trafficnews.jp/post/67890" });
   });
 
-  it("ignores articles outside <main> (e.g. sidebar widgets)", () => {
+  it('ignores articles outside <section class="section-archive-list"> (e.g. sidebar widgets)', () => {
     const html = `
-      <main>
+      <section class="section-archive-list">
         <h2 class="entry-title">
           <a href="https://trafficnews.jp/post/11111">road記事</a>
         </h2>
-      </main>
+      </section>
       <aside>
         <h2><a href="https://trafficnews.jp/post/99999">サイドバーの他カテゴリ記事</a></h2>
       </aside>

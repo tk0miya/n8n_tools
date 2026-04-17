@@ -33,9 +33,9 @@ export function parseArgs(argv: string[]): RunOptions {
 }
 
 export function extractArticles(html: string): ArticleEntry[] {
-  // Limit to <main> element to exclude sidebar widgets containing off-category articles
-  const mainMatch = html.match(/<main[\s\S]*?<\/main>/i);
-  const targetHtml = mainMatch ? mainMatch[0] : html;
+  // Limit to <section class="section-archive-list"> to exclude sidebar widgets containing off-category articles
+  const sectionMatch = html.match(/<section[^>]*class="[^"]*section-archive-list[^"]*"[^>]*>[\s\S]*?<\/section>/i);
+  const targetHtml = sectionMatch ? sectionMatch[0] : html;
 
   const seen = new Set<string>();
   const articles: ArticleEntry[] = [];
