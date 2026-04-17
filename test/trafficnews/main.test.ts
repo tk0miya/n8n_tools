@@ -46,17 +46,35 @@ describe("parseArgs", () => {
 describe("extractArticles", () => {
   it("extracts articles from heading-wrapped links", () => {
     const html = `
-      <h2 class="entry-title">
-        <a href="https://trafficnews.jp/post/12345">道路工事のお知らせ</a>
-      </h2>
-      <h2 class="entry-title">
-        <a href="https://trafficnews.jp/post/67890">新しい高速道路が開通</a>
-      </h2>
+      <main>
+        <h2 class="entry-title">
+          <a href="https://trafficnews.jp/post/12345">道路工事のお知らせ</a>
+        </h2>
+        <h2 class="entry-title">
+          <a href="https://trafficnews.jp/post/67890">新しい高速道路が開通</a>
+        </h2>
+      </main>
     `;
     const articles = extractArticles(html);
     expect(articles).toHaveLength(2);
     expect(articles[0]).toEqual({ title: "道路工事のお知らせ", url: "https://trafficnews.jp/post/12345" });
     expect(articles[1]).toEqual({ title: "新しい高速道路が開通", url: "https://trafficnews.jp/post/67890" });
+  });
+
+  it("ignores articles outside <main> (e.g. sidebar widgets)", () => {
+    const html = `
+      <main>
+        <h2 class="entry-title">
+          <a href="https://trafficnews.jp/post/11111">road記事</a>
+        </h2>
+      </main>
+      <aside>
+        <h2><a href="https://trafficnews.jp/post/99999">サイドバーの他カテゴリ記事</a></h2>
+      </aside>
+    `;
+    const articles = extractArticles(html);
+    expect(articles).toHaveLength(1);
+    expect(articles[0].url).toBe("https://trafficnews.jp/post/11111");
   });
 
   it("deduplicates articles with the same URL", () => {

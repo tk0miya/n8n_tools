@@ -33,6 +33,10 @@ export function parseArgs(argv: string[]): RunOptions {
 }
 
 export function extractArticles(html: string): ArticleEntry[] {
+  // Limit to <main> element to exclude sidebar widgets containing off-category articles
+  const mainMatch = html.match(/<main[\s\S]*?<\/main>/i);
+  const targetHtml = mainMatch ? mainMatch[0] : html;
+
   const seen = new Set<string>();
   const articles: ArticleEntry[] = [];
 
@@ -40,7 +44,7 @@ export function extractArticles(html: string): ArticleEntry[] {
   // Two passes: first look for headings containing links, then fall back to any post links.
   const headingPattern =
     /<h[1-6][^>]*>[\s\S]*?<a[^>]+href="(https:\/\/trafficnews\.jp\/post\/[^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/h[1-6]>/gi;
-  for (const match of html.matchAll(headingPattern)) {
+  for (const match of targetHtml.matchAll(headingPattern)) {
     const url = match[1];
     const rawTitle = match[2]
       .replace(/<[^>]+>/g, "")
@@ -55,7 +59,7 @@ export function extractArticles(html: string): ArticleEntry[] {
   // Fallback: any post links with non-empty anchor text not already captured
   if (articles.length === 0) {
     const linkPattern = /<a[^>]+href="(https:\/\/trafficnews\.jp\/post\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-    for (const match of html.matchAll(linkPattern)) {
+    for (const match of targetHtml.matchAll(linkPattern)) {
       const url = match[1];
       const rawTitle = match[2]
         .replace(/<[^>]+>/g, "")
