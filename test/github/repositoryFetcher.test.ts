@@ -68,8 +68,12 @@ describe("fetchRepositories", () => {
     const client = buildClient({
       repos,
       pullsByRepo: {
-        "testuser/repo1": [{}, {}, {}],
-        "testuser/repo2": [{}],
+        "testuser/repo1": [
+          { title: "PR one", html_url: "https://github.com/testuser/repo1/pull/1" },
+          { title: "PR two", html_url: "https://github.com/testuser/repo1/pull/2" },
+          { title: "PR three", html_url: "https://github.com/testuser/repo1/pull/3" },
+        ],
+        "testuser/repo2": [{ title: "Only PR", html_url: "https://github.com/testuser/repo2/pull/1" }],
       },
     });
 
@@ -78,11 +82,15 @@ describe("fetchRepositories", () => {
     expect(result[0]).toEqual({
       name: "repo1",
       url: "https://github.com/testuser/repo1",
-      pullRequestsCount: 3,
+      pullRequests: [
+        { title: "PR one", url: "https://github.com/testuser/repo1/pull/1" },
+        { title: "PR two", url: "https://github.com/testuser/repo1/pull/2" },
+        { title: "PR three", url: "https://github.com/testuser/repo1/pull/3" },
+      ],
       languageVersions: {},
       noActionlint: false,
     });
-    expect(result[1]?.pullRequestsCount).toBe(1);
+    expect(result[1]?.pullRequests).toEqual([{ title: "Only PR", url: "https://github.com/testuser/repo2/pull/1" }]);
   });
 
   it("returns empty array when user has no repositories", async () => {
@@ -118,7 +126,7 @@ describe("fetchRepositories", () => {
     expect(result[0]?.languageVersions).toEqual({ ruby: ["3.1", "3.2"] });
   });
 
-  it("returns 0 pull request count when access is forbidden (403)", async () => {
+  it("returns empty pull request list when access is forbidden (403)", async () => {
     const repos = [fakeRepo({ name: "repo1", html_url: "https://github.com/testuser/repo1" })];
     const client = buildClient({ repos });
     vi.mocked(client.rest.pulls.list as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -128,7 +136,7 @@ describe("fetchRepositories", () => {
     );
 
     const result = await fetchRepositories(client);
-    expect(result[0]?.pullRequestsCount).toBe(0);
+    expect(result[0]?.pullRequests).toEqual([]);
   });
 
   it("fetches PR count and workflows concurrently per repo", async () => {

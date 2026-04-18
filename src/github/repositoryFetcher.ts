@@ -1,6 +1,6 @@
 import { RequestError } from "@octokit/request-error";
 import type { Octokit } from "@octokit/rest";
-import type { Repository } from "./repository.js";
+import type { PullRequest, Repository } from "./repository.js";
 import { analyzeWorkflows } from "./workflowParser.js";
 
 type OctokitRepo = Awaited<ReturnType<Octokit["rest"]["repos"]["listForAuthenticatedUser"]>>["data"][number];
@@ -37,27 +37,27 @@ async function getLogin(client: Octokit): Promise<string> {
 }
 
 async function buildRepository(client: Octokit, login: string, repo: OctokitRepo): Promise<Repository> {
-  const [prCount, workflows] = await Promise.all([
-    fetchPullRequestCount(client, login, repo.name),
+  const [pullRequests, workflows] = await Promise.all([
+    fetchPullRequests(client, login, repo.name),
     analyzeWorkflows(client, `${login}/${repo.name}`),
   ]);
 
   return {
     name: repo.name,
     url: repo.html_url,
-    pullRequestsCount: prCount,
+    pullRequests,
     languageVersions: workflows.languageVersions,
     noActionlint: workflows.noActionlint,
   };
 }
 
-async function fetchPullRequestCount(client: Octokit, owner: string, repo: string): Promise<number> {
+async function fetchPullRequests(client: Octokit, owner: string, repo: string): Promise<PullRequest[]> {
   try {
     const pulls = await client.rest.pulls.list({ owner, repo, state: "open" });
-    return pulls.data.length;
+    return pulls.data.map((pr) => ({ title: pr.title, url: pr.html_url }));
   } catch (error: unknown) {
     if (error instanceof RequestError && (error.status === 403 || error.status === 404)) {
-      return 0;
+      return [];
     }
     throw error;
   }
