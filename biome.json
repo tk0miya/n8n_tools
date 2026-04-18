@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/dist", "!!**/workflows"]
+    "includes": ["**", "!!**/dist", "!!**/workflows", "!!**/gas"]
   },
   "formatter": {
     "enabled": true,
