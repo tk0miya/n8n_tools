@@ -28,5 +28,20 @@ services:
       - n8n_data:/home/node/.n8n
       - ./local-files:/files
 
+  orchestrator:
+    image: alpine:3
+    restart: unless-stopped
+    # apk add runs at each start; takes a few seconds but keeps the image upstream-only.
+    command: >
+      sh -c "apk add --no-cache docker-cli jq &&
+             chmod +x /www/cgi-bin/run.sh &&
+             busybox httpd -f -p 8080 -h /www"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./local-files:/files:ro
+      - ./local-files/n8n_tools/orchestrator/cgi-bin/run.sh:/www/cgi-bin/run.sh:ro
+    environment:
+      - N8N_TOOLS_PATH=${PWD}/local-files/n8n_tools
+
 volumes:
   n8n_data:
