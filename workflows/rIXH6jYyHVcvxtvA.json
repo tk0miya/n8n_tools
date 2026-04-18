@@ -1,0 +1,287 @@
+{
+  "updatedAt": "2026-04-18T06:22:04.104Z",
+  "createdAt": "2026-03-31T17:30:35.534Z",
+  "id": "rIXH6jYyHVcvxtvA",
+  "name": "リポジトリの状態チェック",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 12 * * 2,6"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5f99c8a0-6ac7-4ca6-83d7-80c7b1a75c16",
+      "name": "土曜 12:00"
+    },
+    {
+      "parameters": {
+        "command": "cd /files/n8n_tools\nnpx tsx src/ghscan/cli.ts\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d1505358-3895-4a77-b2d4-d8d5e06eb18c",
+      "name": "ghscan の実行"
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = $input.first().json.stdout;\nconst repos = JSON.parse(stdout);\n\nconst lines = repos.map(repo => {\n  const problems = [];\n\n  if (repo.pullRequests && repo.pullRequests.length > 0) {\n    for (const pr of repo.pullRequests) {\n      problems.push(`    • <${pr.url}|${pr.title}>`);\n    }\n  }\n  if (repo.noActionlint) {\n    problems.push(`• actionlint が導入されていません`);\n  }\n  if (repo.outdatedLanguages) {\n    for (const lang of repo.outdatedLanguages) {\n      problems.push(`• 利用している ${lang} バージョンが古い可能性があります `);\n    }\n  }\n\n  return `*<${repo.url}|${repo.name}>*\\n${problems.join('\\n')}`;\n});\n\nreturn [{ json: { text: lines.join('\\n\\n') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "844d945b-6a2f-4c98-bc83-ae4fb12f221a",
+      "name": "レスポンスの加工"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#workflow",
+          "mode": "name"
+        },
+        "text": "={{ $input.first().json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": "octocat"
+            }
+          },
+          "unfurl_links": false,
+          "unfurl_media": false,
+          "sendAsUser": "問題のあるリポジトリ"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "550b34e5-85ba-46d1-afef-79055777c31a",
+      "name": "slack に通知",
+      "webhookId": "4490000a-bf76-44a0-8a97-a354f920b4ac",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#workflow",
+          "mode": "name"
+        },
+        "text": "={{ `GITHUB_TOKEN の有効期限が近づいています: ${$json.stdout.parseJson().expiration}` }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        624,
+        176
+      ],
+      "id": "19bae8a8-105f-41f4-8269-5b7a1d7e4fe4",
+      "name": "slack に通知1",
+      "webhookId": "4490000a-bf76-44a0-8a97-a354f920b4ac",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "cd /files/n8n_tools\nnpx tsx src/ghtoken/cli.ts"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        208,
+        176
+      ],
+      "id": "20530555-a3e7-4c33-8f8b-e9e35a737f01",
+      "name": "ghtoken の実行"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a65d665d-a756-4fe9-9e57-d4191b6c109f",
+              "leftValue": "={{ $json.stdout.parseJson().daysUntilExpiry }}",
+              "rightValue": 14,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        176
+      ],
+      "id": "ced55432-80a5-4816-815a-f284aa6d7966",
+      "name": "有効期限が2週間以内"
+    },
+    {
+      "parameters": {
+        "command": "cd /files/n8n_tools\nnpx tsx src/ghome/cli.ts \"Hello world\"\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        208,
+        384
+      ],
+      "id": "77ef4172-9178-403d-bd3e-037419ccff3b",
+      "name": "Execute Command"
+    }
+  ],
+  "connections": {
+    "土曜 12:00": {
+      "main": [
+        [
+          {
+            "node": "ghscan の実行",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ghtoken の実行",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ghscan の実行": {
+      "main": [
+        [
+          {
+            "node": "レスポンスの加工",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "レスポンスの加工": {
+      "main": [
+        [
+          {
+            "node": "slack に通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ghtoken の実行": {
+      "main": [
+        [
+          {
+            "node": "有効期限が2週間以内",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "有効期限が2週間以内": {
+      "main": [
+        [
+          {
+            "node": "slack に通知1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:土曜 12:00": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "38913a22-034d-45a1-9999-fbdf4494b490",
+  "activeVersionId": "38913a22-034d-45a1-9999-fbdf4494b490",
+  "versionCounter": 242,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-03-31T17:30:35.549Z",
+      "createdAt": "2026-03-31T17:30:35.549Z",
+      "role": "workflow:owner",
+      "workflowId": "rIXH6jYyHVcvxtvA",
+      "projectId": "yHsQmZORZPbcy5z9",
+      "project": {
+        "updatedAt": "2026-03-18T11:12:41.262Z",
+        "createdAt": "2026-03-16T17:57:23.506Z",
+        "id": "yHsQmZORZPbcy5z9",
+        "name": "Takeshi KOMIYA <i.tkomiya@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1c19844f-d045-4284-87f7-cece9750f135"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 38913a22",
+    "description": ""
+  }
+}
