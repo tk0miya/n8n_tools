@@ -1,4 +1,5 @@
 interface ShoppingItem {
+  id: number;
   rowNumber: number;
   items: string;
   disabled: boolean;

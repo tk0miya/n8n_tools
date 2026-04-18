@@ -20,6 +20,7 @@ function getItems(): ShoppingItem[] {
   const data = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
   return data
     .map((row, index) => ({
+      id: index + 2,
       rowNumber: index + 2,
       items: String(row[0]),
       disabled: parseDisabled(row[1]),
