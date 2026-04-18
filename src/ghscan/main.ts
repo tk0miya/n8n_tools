@@ -1,6 +1,6 @@
 import type { VersionTuple } from "../github/languageVersionFetcher.js";
 import { fetchLatestLanguageVersions } from "../github/languageVersionFetcher.js";
-import type { Repository } from "../github/repository.js";
+import type { PullRequest, Repository } from "../github/repository.js";
 import { fetchRepositories } from "../github/repositoryFetcher.js";
 
 // ── Public API ──────────────────────────────────────────────
@@ -8,7 +8,7 @@ import { fetchRepositories } from "../github/repositoryFetcher.js";
 export interface ScanResult {
   name: string;
   url: string;
-  pullRequestsCount: number;
+  pullRequests: PullRequest[];
   outdatedLanguages: string[];
   noActionlint: boolean;
 }
@@ -57,7 +57,7 @@ export function toScanResult(repo: Repository, latestVersions: ReadonlyMap<strin
   return {
     name: repo.name,
     url: repo.url,
-    pullRequestsCount: repo.pullRequestsCount,
+    pullRequests: repo.pullRequests,
     outdatedLanguages: detectOutdatedLanguages(repo, latestVersions),
     noActionlint: repo.noActionlint,
   };
@@ -67,7 +67,7 @@ export function toScanResult(repo: Repository, latestVersions: ReadonlyMap<strin
 
 export function filterScanResults(results: readonly ScanResult[]): ScanResult[] {
   return results.filter(
-    (result) => result.pullRequestsCount >= 1 || result.outdatedLanguages.length > 0 || result.noActionlint,
+    (result) => result.pullRequests.length >= 1 || result.outdatedLanguages.length > 0 || result.noActionlint,
   );
 }
 

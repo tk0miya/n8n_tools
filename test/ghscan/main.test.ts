@@ -9,7 +9,7 @@ function repo(overrides: Partial<Repository> = {}): Repository {
   return {
     name: "repo",
     url: "https://github.com/testuser/repo",
-    pullRequestsCount: 0,
+    pullRequests: [],
     languageVersions: {},
     noActionlint: false,
     ...overrides,
@@ -20,7 +20,7 @@ function scanResult(overrides: Partial<ScanResult> = {}): ScanResult {
   return {
     name: "repo",
     url: "https://github.com/testuser/repo",
-    pullRequestsCount: 0,
+    pullRequests: [],
     outdatedLanguages: [],
     noActionlint: false,
     ...overrides,
@@ -40,10 +40,16 @@ describe("toScanResult", () => {
     expect(result).toEqual({
       name: "my-repo",
       url: "https://github.com/testuser/repo",
-      pullRequestsCount: 0,
+      pullRequests: [],
       outdatedLanguages: ["ruby"],
       noActionlint: false,
     });
+  });
+
+  it("passes through pull requests from the repository", () => {
+    const pullRequests = [{ title: "Fix bug", url: "https://github.com/testuser/repo/pull/1" }];
+    const result = toScanResult(repo({ pullRequests }), latestVersions);
+    expect(result.pullRequests).toEqual(pullRequests);
   });
 
   it("excludes languageVersions from the result", () => {
@@ -56,11 +62,12 @@ describe("toScanResult", () => {
 
 describe("filterScanResults", () => {
   it("returns only results with at least one open PR", () => {
+    const pr = { title: "t", url: "u" };
     const results = [
-      scanResult({ name: "repo1", pullRequestsCount: 0 }),
-      scanResult({ name: "repo2", pullRequestsCount: 2 }),
-      scanResult({ name: "repo3", pullRequestsCount: 0 }),
-      scanResult({ name: "repo4", pullRequestsCount: 3 }),
+      scanResult({ name: "repo1", pullRequests: [] }),
+      scanResult({ name: "repo2", pullRequests: [pr, pr] }),
+      scanResult({ name: "repo3", pullRequests: [] }),
+      scanResult({ name: "repo4", pullRequests: [pr, pr, pr] }),
     ];
     expect(filterScanResults(results).map((r) => r.name)).toEqual(["repo2", "repo4"]);
   });
