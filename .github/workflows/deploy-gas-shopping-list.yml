@@ -24,7 +24,7 @@ jobs:
         run: printenv CLASP_JSON > .clasp.json
         working-directory: gas/shopping_list
         env:
-          CLASP_JSON: ${{ secrets.CLASP_JSON }}
+          CLASP_JSON: ${{ secrets.CLASP_JSON_SHOPPING_LIST }}
       - name: Create clasp credentials
         run: printenv CLASPRC_JSON > ~/.clasprc.json
         env:
