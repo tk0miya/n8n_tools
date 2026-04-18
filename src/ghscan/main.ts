@@ -1,3 +1,4 @@
+import { parseArgs as nodeParseArgs } from "node:util";
 import type { VersionTuple } from "../github/languageVersionFetcher.js";
 import { fetchLatestLanguageVersions } from "../github/languageVersionFetcher.js";
 import type { PullRequest, Repository } from "../github/repository.js";
@@ -14,10 +15,27 @@ export interface ScanResult {
 }
 
 export interface RunOptions {
-  debug?: boolean;
+  debug: boolean;
+  labels: readonly string[];
 }
 
-export async function run({ debug = false }: RunOptions = {}): Promise<void> {
+export function parseArgs(argv: string[]): RunOptions {
+  const { values } = nodeParseArgs({
+    args: argv.slice(2),
+    options: {
+      debug: { type: "boolean" },
+      label: { type: "string", multiple: true },
+    },
+    allowPositionals: false,
+  });
+
+  return {
+    debug: values.debug ?? false,
+    labels: values.label ?? [],
+  };
+}
+
+export async function run({ debug, labels }: RunOptions): Promise<void> {
   const token = requireToken();
   const { Octokit } = await import("@octokit/rest");
   const client = new Octokit({
@@ -31,7 +49,7 @@ export async function run({ debug = false }: RunOptions = {}): Promise<void> {
   });
 
   const [repositories, latestVersions] = await Promise.all([
-    fetchRepositories(client, { debug }),
+    fetchRepositories(client, { debug, labels }),
     fetchLatestLanguageVersions(client),
   ]);
 

@@ -1,8 +1,7 @@
 import "dotenv/config";
-import { run } from "./main.js";
+import { parseArgs, run } from "./main.js";
 
-const debug = process.argv.includes("--debug");
-run({ debug }).catch((error) => {
+run(parseArgs(process.argv)).catch((error) => {
   console.error(error);
   process.exit(1);
 });
