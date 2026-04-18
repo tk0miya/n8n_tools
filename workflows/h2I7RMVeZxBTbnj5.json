@@ -1,0 +1,168 @@
+{
+  "updatedAt": "2026-04-17T17:59:49.023Z",
+  "createdAt": "2026-04-17T02:22:48.887Z",
+  "id": "h2I7RMVeZxBTbnj5",
+  "name": "乗りものニュース",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5b0fb1cd-5d2f-440a-9e4d-5261f120323c",
+      "name": "1時間おきに"
+    },
+    {
+      "parameters": {
+        "command": "cd /files/n8n_tools\nnpx tsx src/trafficnews/cli.ts"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "bdb3bbcc-03df-4c22-a98a-866f4a7eb05a",
+      "name": "サイトをチェックして"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($input.first().json.stdout);\nreturn parsed.articles.map(article => ({ json: article }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "c72cefdc-399a-4f0c-b681-868d7c5691e2",
+      "name": "JSONを変換して"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#乗りものニュース",
+          "mode": "name"
+        },
+        "text": "={{ `<${$input.item.json.url}|${$input.item.json.title}>` }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "image",
+              "icon_url": "https://pbs.twimg.com/profile_images/894387137272872960/ujLfw6Ez_400x400.jpg"
+            }
+          },
+          "sendAsUser": "乗り物ニュース"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "7a4101fc-82ae-4ca3-8799-71254781d7f8",
+      "name": "Slack に投稿する",
+      "webhookId": "5c9b5632-36c6-45d8-9e49-c5f4820fa095",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "1時間おきに": {
+      "main": [
+        [
+          {
+            "node": "サイトをチェックして",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "サイトをチェックして": {
+      "main": [
+        [
+          {
+            "node": "JSONを変換して",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSONを変換して": {
+      "main": [
+        [
+          {
+            "node": "Slack に投稿する",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a044ce68-d930-4a57-80cc-4ab84e9b1566",
+  "activeVersionId": "6233c2cb-564e-4b33-9611-293aabe97dcc",
+  "versionCounter": 62,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-04-17T02:22:48.891Z",
+      "createdAt": "2026-04-17T02:22:48.891Z",
+      "role": "workflow:owner",
+      "workflowId": "h2I7RMVeZxBTbnj5",
+      "projectId": "yHsQmZORZPbcy5z9",
+      "project": {
+        "updatedAt": "2026-03-18T11:12:41.262Z",
+        "createdAt": "2026-03-16T17:57:23.506Z",
+        "id": "yHsQmZORZPbcy5z9",
+        "name": "Takeshi KOMIYA <i.tkomiya@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1c19844f-d045-4284-87f7-cece9750f135"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

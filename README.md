@@ -21,19 +21,20 @@ cp .env.example .env
 
 ### Synology NAS + Docker + n8n での動作
 
-Synology NAS 上の Docker コンテナ (n8n) から xfetch のステートファイルを書き込むには、ホスト側のディレクトリに適切なパーミッションを設定する必要があります。
+Synology NAS 上の Docker コンテナ (n8n) からファイルを書き出すには、ホスト側のディレクトリに適切なパーミッションを設定する必要があります。
 
-n8n コンテナは UID/GID `1000` で動作するため、ステートファイルを配置するディレクトリ (`var/`) に対して以下のコマンドを実行してください。
+n8n コンテナは UID/GID `1000` で動作するため、以下のコマンドで `var/` と `workflows/` のパーミッションの調整を行ってください。
 
 ```bash
 # Synology ACL を削除して通常の POSIX パーミッションを有効にする
 synoacltool -del var
+synoacltool -del workflows
 
 # グループに読み書き実行を許可する
-chmod -R 770 var
+chmod -R 770 var workflows
 
 # グループを n8n コンテナの GID (1000) に変更する
-sudo chgrp -R 1000 var
+sudo chgrp -R 1000 var workflow
 ```
 
 ## 開発
