@@ -41,7 +41,7 @@ function updateCheckedState(updates: UpdateRequest[]): void {
   });
 }
 
-function deleteCompletedItems(): number {
+function purgeCompletedItems(): number {
   const sheet = getSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return 0;

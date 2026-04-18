@@ -1,7 +1,7 @@
 type PostBody =
   | { action: "add"; items: string[] }
   | { action: "update"; updates: UpdateRequest[] }
-  | { action: "deleteCompleted" };
+  | { action: "purge" };
 
 function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Content.TextOutput {
   const action = e.parameter.action;
@@ -34,8 +34,8 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
       case "update":
         updateCheckedState(body.updates);
         return jsonOutput({ success: true });
-      case "deleteCompleted": {
-        const deleted = deleteCompletedItems();
+      case "purge": {
+        const deleted = purgeCompletedItems();
         return jsonOutput<{ deleted: number }>({ success: true, data: { deleted } });
       }
       default:
