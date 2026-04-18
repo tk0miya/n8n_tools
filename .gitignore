@@ -4,5 +4,6 @@
 /.claude/worktrees/
 /.env
 /dist/
+/gas/**/.clasp.json
 /gas/node_modules/
 /node_modules/
