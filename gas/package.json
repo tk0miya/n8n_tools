@@ -2,6 +2,9 @@
   "name": "n8n-tools-gas",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "build:shopping_list": "tsc -p shopping_list/tsconfig.json && cp shopping_list/src/appsscript.json shopping_list/build/"
+  },
   "devDependencies": {
     "@google/clasp": "^3.3.0",
     "@types/google-apps-script": "^2.0.8",

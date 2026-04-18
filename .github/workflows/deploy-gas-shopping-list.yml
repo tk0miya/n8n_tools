@@ -17,8 +17,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: gas
-      - name: Type check
-        run: npx tsc --noEmit -p shopping_list/tsconfig.json
+      - name: Build
+        run: npm run build:shopping_list
         working-directory: gas
       - name: Create clasp configuration
         run: printenv CLASP_JSON > .clasp.json
