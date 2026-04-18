@@ -1,0 +1,37 @@
+name: Deploy shopping_list to GAS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "gas/shopping_list/src/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Install dependencies
+        run: npm ci
+        working-directory: gas
+      - name: Type check
+        run: npx tsc --noEmit -p shopping_list/tsconfig.json
+        working-directory: gas
+      - name: Create clasp configuration
+        run: printenv CLASP_JSON > .clasp.json
+        working-directory: gas/shopping_list
+        env:
+          CLASP_JSON: ${{ secrets.CLASP_JSON_SHOPPING_LIST }}
+      - name: Create clasp credentials
+        run: printenv CLASPRC_JSON > ~/.clasprc.json
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      - name: Deploy to GAS
+        run: npx clasp push
+        working-directory: gas/shopping_list
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f gas/shopping_list/.clasp.json ~/.clasprc.json

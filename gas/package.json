@@ -1,0 +1,10 @@
+{
+  "name": "n8n-tools-gas",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@google/clasp": "^3.3.0",
+    "@types/google-apps-script": "^2.0.8",
+    "typescript": "^6.0.3"
+  }
+}
