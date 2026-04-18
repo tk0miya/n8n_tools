@@ -25,7 +25,7 @@ function getItems(): ShoppingItem[] {
       items: String(row[0]),
       disabled: parseDisabled(row[1]),
     }))
-    .filter(item => item.items.trim() !== '');
+    .filter(item => item.items.trim() !== '' && !item.disabled);
 }
 
 function addItems(items: string[]): void {
