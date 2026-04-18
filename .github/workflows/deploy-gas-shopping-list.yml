@@ -29,9 +29,14 @@ jobs:
         run: printenv CLASPRC_JSON > ~/.clasprc.json
         env:
           CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
-      - name: Deploy to GAS
+      - name: Push to GAS
         run: npx clasp push
         working-directory: gas/shopping_list
+      - name: Update deployment
+        run: npx clasp deploy --deploymentId "$CLASP_DEPLOY_ID"
+        working-directory: gas/shopping_list
+        env:
+          CLASP_DEPLOY_ID: ${{ secrets.CLASP_DEPLOY_ID_SHOPPING_LIST }}
       - name: Cleanup credentials
         if: always()
         run: rm -f gas/shopping_list/.clasp.json ~/.clasprc.json
