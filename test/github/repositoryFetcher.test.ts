@@ -69,11 +69,11 @@ describe("fetchRepositories", () => {
       repos,
       pullsByRepo: {
         "testuser/repo1": [
-          { title: "PR one", html_url: "https://github.com/testuser/repo1/pull/1" },
-          { title: "PR two", html_url: "https://github.com/testuser/repo1/pull/2" },
-          { title: "PR three", html_url: "https://github.com/testuser/repo1/pull/3" },
+          { title: "PR one", html_url: "https://github.com/testuser/repo1/pull/1", labels: [] },
+          { title: "PR two", html_url: "https://github.com/testuser/repo1/pull/2", labels: [] },
+          { title: "PR three", html_url: "https://github.com/testuser/repo1/pull/3", labels: [] },
         ],
-        "testuser/repo2": [{ title: "Only PR", html_url: "https://github.com/testuser/repo2/pull/1" }],
+        "testuser/repo2": [{ title: "Only PR", html_url: "https://github.com/testuser/repo2/pull/1", labels: [] }],
       },
     });
 
@@ -83,14 +83,16 @@ describe("fetchRepositories", () => {
       name: "repo1",
       url: "https://github.com/testuser/repo1",
       pullRequests: [
-        { title: "PR one", url: "https://github.com/testuser/repo1/pull/1" },
-        { title: "PR two", url: "https://github.com/testuser/repo1/pull/2" },
-        { title: "PR three", url: "https://github.com/testuser/repo1/pull/3" },
+        { title: "PR one", url: "https://github.com/testuser/repo1/pull/1", labels: [] },
+        { title: "PR two", url: "https://github.com/testuser/repo1/pull/2", labels: [] },
+        { title: "PR three", url: "https://github.com/testuser/repo1/pull/3", labels: [] },
       ],
       languageVersions: {},
       noActionlint: false,
     });
-    expect(result[1]?.pullRequests).toEqual([{ title: "Only PR", url: "https://github.com/testuser/repo2/pull/1" }]);
+    expect(result[1]?.pullRequests).toEqual([
+      { title: "Only PR", url: "https://github.com/testuser/repo2/pull/1", labels: [] },
+    ]);
   });
 
   it("returns empty array when user has no repositories", async () => {
@@ -146,5 +148,59 @@ describe("fetchRepositories", () => {
     await fetchRepositories(client);
 
     expect(analyzeWorkflows).toHaveBeenCalledWith(client, "testuser/repo1");
+  });
+
+  it("includes PR labels in the result", async () => {
+    const repos = [fakeRepo({ name: "repo1" })];
+    const client = buildClient({
+      repos,
+      pullsByRepo: {
+        "testuser/repo1": [
+          {
+            title: "PR",
+            html_url: "https://github.com/testuser/repo1/pull/1",
+            labels: [{ name: "bug" }, { name: "urgent" }],
+          },
+        ],
+      },
+    });
+
+    const result = await fetchRepositories(client);
+    expect(result[0]?.pullRequests).toEqual([
+      { title: "PR", url: "https://github.com/testuser/repo1/pull/1", labels: ["bug", "urgent"] },
+    ]);
+  });
+
+  it("filters PRs to those containing all specified labels", async () => {
+    const repos = [fakeRepo({ name: "repo1" })];
+    const client = buildClient({
+      repos,
+      pullsByRepo: {
+        "testuser/repo1": [
+          { title: "match", html_url: "u1", labels: [{ name: "bug" }, { name: "urgent" }] },
+          { title: "partial", html_url: "u2", labels: [{ name: "bug" }] },
+          { title: "none", html_url: "u3", labels: [] },
+        ],
+      },
+    });
+
+    const result = await fetchRepositories(client, { labels: ["bug", "urgent"] });
+    expect(result[0]?.pullRequests.map((pr) => pr.title)).toEqual(["match"]);
+  });
+
+  it("returns all PRs when no labels are specified", async () => {
+    const repos = [fakeRepo({ name: "repo1" })];
+    const client = buildClient({
+      repos,
+      pullsByRepo: {
+        "testuser/repo1": [
+          { title: "a", html_url: "u1", labels: [{ name: "bug" }] },
+          { title: "b", html_url: "u2", labels: [] },
+        ],
+      },
+    });
+
+    const result = await fetchRepositories(client, { labels: [] });
+    expect(result[0]?.pullRequests).toHaveLength(2);
   });
 });

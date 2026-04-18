@@ -9,13 +9,17 @@ const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 export interface FetchOptions {
   debug?: boolean;
+  labels?: readonly string[];
 }
 
 export function isActiveRepo(repo: OctokitRepo): boolean {
   return !repo.archived && !repo.fork && new Date(repo.pushed_at ?? 0).getTime() > Date.now() - ONE_YEAR_MS;
 }
 
-export async function fetchRepositories(client: Octokit, { debug = false }: FetchOptions = {}): Promise<Repository[]> {
+export async function fetchRepositories(
+  client: Octokit,
+  { debug = false, labels = [] }: FetchOptions = {},
+): Promise<Repository[]> {
   const login = await getLogin(client);
   const allRepos = await client.paginate(client.rest.repos.listForAuthenticatedUser, { type: "owner" });
   if (debug) console.warn(`[debug] Found ${allRepos.length} repositories`);
@@ -26,7 +30,7 @@ export async function fetchRepositories(client: Octokit, { debug = false }: Fetc
   return Promise.all(
     activeRepos.map((repo, i) => {
       if (debug) console.warn(`[debug] Processing ${repo.name} (${i + 1}/${activeRepos.length})`);
-      return buildRepository(client, login, repo);
+      return buildRepository(client, login, repo, labels);
     }),
   );
 }
@@ -36,9 +40,14 @@ async function getLogin(client: Octokit): Promise<string> {
   return user.login;
 }
 
-async function buildRepository(client: Octokit, login: string, repo: OctokitRepo): Promise<Repository> {
+async function buildRepository(
+  client: Octokit,
+  login: string,
+  repo: OctokitRepo,
+  labels: readonly string[],
+): Promise<Repository> {
   const [pullRequests, workflows] = await Promise.all([
-    fetchPullRequests(client, login, repo.name),
+    fetchPullRequests(client, login, repo.name, labels),
     analyzeWorkflows(client, `${login}/${repo.name}`),
   ]);
 
@@ -51,10 +60,20 @@ async function buildRepository(client: Octokit, login: string, repo: OctokitRepo
   };
 }
 
-async function fetchPullRequests(client: Octokit, owner: string, repo: string): Promise<PullRequest[]> {
+async function fetchPullRequests(
+  client: Octokit,
+  owner: string,
+  repo: string,
+  labels: readonly string[],
+): Promise<PullRequest[]> {
   try {
     const pulls = await client.rest.pulls.list({ owner, repo, state: "open" });
-    return pulls.data.map((pr) => ({ title: pr.title, url: pr.html_url }));
+    const all = pulls.data.map((pr) => ({
+      title: pr.title,
+      url: pr.html_url,
+      labels: pr.labels.map((l) => l.name),
+    }));
+    return labels.length === 0 ? all : all.filter((pr) => labels.every((l) => pr.labels.includes(l)));
   } catch (error: unknown) {
     if (error instanceof RequestError && (error.status === 403 || error.status === 404)) {
       return [];

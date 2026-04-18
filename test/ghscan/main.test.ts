@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ScanResult } from "@/ghscan/main.js";
-import { detectOutdatedLanguages, filterScanResults, parseMinorVersion, toScanResult } from "@/ghscan/main.js";
+import {
+  detectOutdatedLanguages,
+  filterScanResults,
+  parseArgs,
+  parseMinorVersion,
+  toScanResult,
+} from "@/ghscan/main.js";
 import type { Repository } from "@/github/repository.js";
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -47,7 +53,7 @@ describe("toScanResult", () => {
   });
 
   it("passes through pull requests from the repository", () => {
-    const pullRequests = [{ title: "Fix bug", url: "https://github.com/testuser/repo/pull/1" }];
+    const pullRequests = [{ title: "Fix bug", url: "https://github.com/testuser/repo/pull/1", labels: [] }];
     const result = toScanResult(repo({ pullRequests }), latestVersions);
     expect(result.pullRequests).toEqual(pullRequests);
   });
@@ -62,7 +68,7 @@ describe("toScanResult", () => {
 
 describe("filterScanResults", () => {
   it("returns only results with at least one open PR", () => {
-    const pr = { title: "t", url: "u" };
+    const pr = { title: "t", url: "u", labels: [] };
     const results = [
       scanResult({ name: "repo1", pullRequests: [] }),
       scanResult({ name: "repo2", pullRequests: [pr, pr] }),
@@ -129,6 +135,27 @@ describe("detectOutdatedLanguages", () => {
   it("ignores untracked languages", () => {
     const result = detectOutdatedLanguages(repo({ languageVersions: { go: ["1.22"] } }), latestVersions);
     expect(result).toEqual([]);
+  });
+});
+
+// ── parseArgs ───────────────────────────────────────────────
+
+describe("parseArgs", () => {
+  const argv = (...args: string[]) => ["node", "ghscan", ...args];
+
+  it("returns defaults when no flags are given", () => {
+    expect(parseArgs(argv())).toEqual({ debug: false, labels: [] });
+  });
+
+  it("parses --debug", () => {
+    expect(parseArgs(argv("--debug"))).toEqual({ debug: true, labels: [] });
+  });
+
+  it("collects multiple --label values", () => {
+    expect(parseArgs(argv("--label", "bug", "--label", "urgent"))).toEqual({
+      debug: false,
+      labels: ["bug", "urgent"],
+    });
   });
 });
 

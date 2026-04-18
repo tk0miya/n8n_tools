@@ -1,6 +1,7 @@
 export interface PullRequest {
   title: string;
   url: string;
+  labels: string[];
 }
 
 export interface Repository {
