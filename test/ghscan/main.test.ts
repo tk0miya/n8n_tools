@@ -18,6 +18,8 @@ function repo(overrides: Partial<Repository> = {}): Repository {
     pullRequests: [],
     languageVersions: {},
     noActionlint: false,
+    noDependabot: false,
+    noDependabotCooldown: false,
     ...overrides,
   };
 }
@@ -29,6 +31,8 @@ function scanResult(overrides: Partial<ScanResult> = {}): ScanResult {
     pullRequests: [],
     outdatedLanguages: [],
     noActionlint: false,
+    noDependabot: false,
+    noDependabotCooldown: false,
     ...overrides,
   };
 }
@@ -49,6 +53,8 @@ describe("toScanResult", () => {
       pullRequests: [],
       outdatedLanguages: ["ruby"],
       noActionlint: false,
+      noDependabot: false,
+      noDependabotCooldown: false,
     });
   });
 
@@ -96,6 +102,16 @@ describe("filterScanResults", () => {
   it("excludes a result running actionlint with no other flags", () => {
     const results = [scanResult({ name: "with-actionlint" })];
     expect(filterScanResults(results)).toEqual([]);
+  });
+
+  it("includes a result missing dependabot config", () => {
+    const results = [scanResult({ name: "no-dependabot", noDependabot: true })];
+    expect(filterScanResults(results).map((r) => r.name)).toEqual(["no-dependabot"]);
+  });
+
+  it("includes a result missing dependabot cooldown", () => {
+    const results = [scanResult({ name: "no-cooldown", noDependabotCooldown: true })];
+    expect(filterScanResults(results).map((r) => r.name)).toEqual(["no-cooldown"]);
   });
 
   it("returns empty array for empty input", () => {

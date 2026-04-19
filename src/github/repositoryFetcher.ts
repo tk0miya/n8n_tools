@@ -1,5 +1,6 @@
 import { RequestError } from "@octokit/request-error";
 import type { Octokit } from "@octokit/rest";
+import { analyzeDependabot } from "./dependabotParser.js";
 import type { PullRequest, Repository } from "./repository.js";
 import { analyzeWorkflows } from "./workflowParser.js";
 
@@ -46,9 +47,10 @@ async function buildRepository(
   repo: OctokitRepo,
   labels: readonly string[],
 ): Promise<Repository> {
-  const [pullRequests, workflows] = await Promise.all([
+  const [pullRequests, workflows, dependabot] = await Promise.all([
     fetchPullRequests(client, login, repo.name, labels),
     analyzeWorkflows(client, `${login}/${repo.name}`),
+    analyzeDependabot(client, `${login}/${repo.name}`),
   ]);
 
   return {
@@ -57,6 +59,8 @@ async function buildRepository(
     pullRequests,
     languageVersions: workflows.languageVersions,
     noActionlint: workflows.noActionlint,
+    noDependabot: dependabot.noDependabot,
+    noDependabotCooldown: dependabot.noDependabotCooldown,
   };
 }
 

@@ -12,6 +12,8 @@ export interface ScanResult {
   pullRequests: PullRequest[];
   outdatedLanguages: string[];
   noActionlint: boolean;
+  noDependabot: boolean;
+  noDependabotCooldown: boolean;
 }
 
 export interface RunOptions {
@@ -78,6 +80,8 @@ export function toScanResult(repo: Repository, latestVersions: ReadonlyMap<strin
     pullRequests: repo.pullRequests,
     outdatedLanguages: detectOutdatedLanguages(repo, latestVersions),
     noActionlint: repo.noActionlint,
+    noDependabot: repo.noDependabot,
+    noDependabotCooldown: repo.noDependabotCooldown,
   };
 }
 
@@ -85,7 +89,12 @@ export function toScanResult(repo: Repository, latestVersions: ReadonlyMap<strin
 
 export function filterScanResults(results: readonly ScanResult[]): ScanResult[] {
   return results.filter(
-    (result) => result.pullRequests.length >= 1 || result.outdatedLanguages.length > 0 || result.noActionlint,
+    (result) =>
+      result.pullRequests.length >= 1 ||
+      result.outdatedLanguages.length > 0 ||
+      result.noActionlint ||
+      result.noDependabot ||
+      result.noDependabotCooldown,
   );
 }
 

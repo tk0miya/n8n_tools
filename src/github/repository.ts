@@ -10,4 +10,6 @@ export interface Repository {
   pullRequests: PullRequest[];
   languageVersions: Record<string, string[]>;
   noActionlint: boolean;
+  noDependabot: boolean;
+  noDependabotCooldown: boolean;
 }
