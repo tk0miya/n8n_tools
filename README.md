@@ -18,6 +18,8 @@ cp .env.example .env
 | `GHOME_IP` | Google Home デバイスの IP アドレス |
 | `X_BEARER_TOKEN` | X (Twitter) API Bearer トークン |
 | `XFETCH_STATE_FILE` | xfetch のステートファイルパス |
+| `TRAFFICNEWS_STATE_FILE` | trafficnews のステートファイルパス |
+| `MICHINOEKI_STATE_FILE` | michinoeki のステートファイルパス |
 
 ### Synology NAS + Docker + n8n での動作
 
