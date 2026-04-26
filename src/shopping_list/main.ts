@@ -6,7 +6,6 @@ export type Subcommand = "dispatch" | "update" | "purge";
 
 export interface RunOptions {
   subcommand: Subcommand;
-  text: string;
 }
 
 export interface DispatchListOutput {
@@ -35,17 +34,30 @@ export interface PurgeOutput {
 
 export function parseArgs(argv: string[]): RunOptions {
   const args = argv.slice(2);
-  const [subcommand, ...rest] = args;
+  const [subcommand] = args;
 
   switch (subcommand) {
     case "dispatch":
-      return { subcommand: "dispatch", text: rest.join(" ") };
     case "update":
     case "purge":
-      return { subcommand, text: "" };
+      return { subcommand };
     default:
       throw new Error(`Unknown subcommand: ${subcommand ?? "(missing)"}. Use one of: dispatch, update, purge`);
   }
+}
+
+export function extractTextFromSlackEvents(payload: unknown): string {
+  const events = Array.isArray(payload) ? payload : [payload];
+  return events
+    .map((event) => {
+      if (event && typeof event === "object" && "text" in event) {
+        const text = (event as { text?: unknown }).text;
+        return typeof text === "string" ? text : "";
+      }
+      return "";
+    })
+    .filter((t) => t.length > 0)
+    .join("\n");
 }
 
 function getGasUrl(): string {
@@ -64,7 +76,8 @@ async function readStdin(): Promise<string> {
   return Buffer.concat(chunks).toString("utf-8");
 }
 
-export async function runDispatch(text: string, client: GasClientApi): Promise<DispatchOutput> {
+export async function runDispatch(payload: unknown, client: GasClientApi): Promise<DispatchOutput> {
+  const text = extractTextFromSlackEvents(payload);
   const argument = stripMentions(text);
   if (argument === "") {
     const items = await client.list();
@@ -98,7 +111,15 @@ export async function run(options: RunOptions): Promise<number> {
 
   switch (options.subcommand) {
     case "dispatch": {
-      const output = await runDispatch(options.text, client);
+      const raw = (await readStdin()).trim();
+      if (!raw) throw new Error("stdin is empty");
+      let payload: unknown;
+      try {
+        payload = JSON.parse(raw);
+      } catch (error) {
+        throw new Error(`invalid JSON on stdin: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      const output = await runDispatch(payload, client);
       console.log(JSON.stringify(output));
       return 0;
     }
