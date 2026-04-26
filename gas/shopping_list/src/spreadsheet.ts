@@ -48,14 +48,21 @@ function addItems(items: string[]): void {
   }
 }
 
-function updateCheckedState(updates: UpdateRequest[]): void {
+function updateCheckedState(updates: UpdateRequest[]): UpdateResult {
   const sheet = getSheet();
   const rows = loadShoppingList(sheet);
+  let matched = 0;
+  const skipped: string[] = [];
   updates.forEach(({ id, checked }) => {
     const row = rows.find(r => r.id === id);
-    if (!row) return;
+    if (!row) {
+      skipped.push(id);
+      return;
+    }
     sheet.getRange(row.rowNumber, COL_DISABLED).setValue(checked ? 'true' : '');
+    matched++;
   });
+  return { matched, skipped };
 }
 
 function purgeCompletedItems(): number {

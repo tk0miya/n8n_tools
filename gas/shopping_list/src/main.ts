@@ -31,9 +31,10 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
       case "add":
         addItems(body.items);
         return jsonOutput({ success: true });
-      case "update":
-        updateCheckedState(body.updates);
-        return jsonOutput({ success: true });
+      case "update": {
+        const result = updateCheckedState(body.updates);
+        return jsonOutput<UpdateResult>({ success: true, data: result });
+      }
       case "purge": {
         const deleted = purgeCompletedItems();
         return jsonOutput<{ deleted: number }>({ success: true, data: { deleted } });

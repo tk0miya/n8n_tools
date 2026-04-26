@@ -24,7 +24,8 @@ export type DispatchOutput = DispatchListOutput | DispatchAddOutput;
 
 export interface UpdateOutput {
   success: true;
-  updated: number;
+  matched: number;
+  skipped: string[];
 }
 
 export interface PurgeOutput {
@@ -97,8 +98,8 @@ export function toUpdateRequests(stateMap: Record<string, boolean>) {
 
 export async function runUpdate(stateMap: Record<string, boolean>, client: GasClientApi): Promise<UpdateOutput> {
   const updates = toUpdateRequests(stateMap);
-  await client.update(updates);
-  return { success: true, updated: updates.length };
+  const result = await client.update(updates);
+  return { success: true, ...result };
 }
 
 export async function runPurge(client: GasClientApi): Promise<PurgeOutput> {

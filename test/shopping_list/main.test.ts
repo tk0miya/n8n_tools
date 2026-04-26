@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { GasClientApi, ShoppingItem, UpdateRequest } from "@/shopping_list/gas.js";
+import type { GasClientApi, ShoppingItem, UpdateRequest, UpdateResult } from "@/shopping_list/gas.js";
 import {
   extractTextFromSlackEvents,
   parseArgs,
@@ -13,7 +13,7 @@ function fakeClient(overrides: Partial<GasClientApi> = {}): GasClientApi {
   return {
     list: vi.fn(async () => [] as ShoppingItem[]),
     add: vi.fn(async (_items: string[]) => {}),
-    update: vi.fn(async (_updates: UpdateRequest[]) => {}),
+    update: vi.fn(async (_updates: UpdateRequest[]): Promise<UpdateResult> => ({ matched: 0, skipped: [] })),
     purge: vi.fn(async () => 0),
     ...overrides,
   };
@@ -112,8 +112,10 @@ describe("toUpdateRequests", () => {
 });
 
 describe("runUpdate", () => {
-  it("forwards converted updates to the GAS client and reports the count", async () => {
-    const client = fakeClient();
+  it("forwards converted updates to the GAS client and surfaces the matched/skipped counts", async () => {
+    const client = fakeClient({
+      update: vi.fn(async (): Promise<UpdateResult> => ({ matched: 1, skipped: ["uuid-b"] })),
+    });
 
     const out = await runUpdate({ "uuid-a": true, "uuid-b": false }, client);
 
@@ -121,7 +123,7 @@ describe("runUpdate", () => {
       { id: "uuid-a", checked: true },
       { id: "uuid-b", checked: false },
     ]);
-    expect(out).toEqual({ success: true, updated: 2 });
+    expect(out).toEqual({ success: true, matched: 1, skipped: ["uuid-b"] });
   });
 });
 

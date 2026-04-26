@@ -9,6 +9,11 @@ interface UpdateRequest {
   checked: boolean;
 }
 
+interface UpdateResult {
+  matched: number;
+  skipped: string[];
+}
+
 interface ApiResponse<T = undefined> {
   success: boolean;
   data?: T;
