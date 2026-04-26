@@ -90,7 +90,7 @@ export async function runDispatch(payload: unknown, client: GasClientApi): Promi
 
 export function toUpdateRequests(stateMap: Record<string, boolean>) {
   return Object.entries(stateMap).map(([id, checked]) => ({
-    id: Number(id),
+    id,
     checked,
   }));
 }

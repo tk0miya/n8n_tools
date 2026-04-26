@@ -42,7 +42,7 @@ export function buildBlocks(items: ShoppingItem[]): BlockKitBlock[] {
           action_id: `checkbox_action_${index}`,
           options: chunk.map((item) => ({
             text: { type: "plain_text", text: item.items },
-            value: String(item.id),
+            value: item.id,
           })),
         },
       ],

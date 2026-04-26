@@ -64,7 +64,7 @@ describe("extractTextFromSlackEvents", () => {
 
 describe("runDispatch", () => {
   it("returns a list payload with BlockKit blocks when text is empty after stripping mentions", async () => {
-    const items: ShoppingItem[] = [{ id: 2, items: "牛乳", disabled: false }];
+    const items: ShoppingItem[] = [{ id: "uuid-1", items: "牛乳", disabled: false }];
     const client = fakeClient({ list: vi.fn(async () => items) });
 
     const out = await runDispatch([{ text: "<@U123>" }], client);
@@ -99,10 +99,10 @@ describe("runDispatch", () => {
 
 describe("toUpdateRequests", () => {
   it("converts a {id: boolean} map to update requests", () => {
-    expect(toUpdateRequests({ "2": true, "3": false, "5": true })).toEqual([
-      { id: 2, checked: true },
-      { id: 3, checked: false },
-      { id: 5, checked: true },
+    expect(toUpdateRequests({ "uuid-a": true, "uuid-b": false, "uuid-c": true })).toEqual([
+      { id: "uuid-a", checked: true },
+      { id: "uuid-b", checked: false },
+      { id: "uuid-c", checked: true },
     ]);
   });
 
@@ -115,11 +115,11 @@ describe("runUpdate", () => {
   it("forwards converted updates to the GAS client and reports the count", async () => {
     const client = fakeClient();
 
-    const out = await runUpdate({ "2": true, "3": false }, client);
+    const out = await runUpdate({ "uuid-a": true, "uuid-b": false }, client);
 
     expect(client.update).toHaveBeenCalledWith([
-      { id: 2, checked: true },
-      { id: 3, checked: false },
+      { id: "uuid-a", checked: true },
+      { id: "uuid-b", checked: false },
     ]);
     expect(out).toEqual({ success: true, updated: 2 });
   });
