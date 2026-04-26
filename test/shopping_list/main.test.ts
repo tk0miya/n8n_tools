@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GasClientApi, ShoppingItem, UpdateRequest } from "@/shopping_list/gas.js";
-import { parseArgs, runDispatch, runPurge, runUpdate, toUpdateRequests } from "@/shopping_list/main.js";
+import {
+  extractTextFromSlackEvents,
+  parseArgs,
+  runDispatch,
+  runPurge,
+  runUpdate,
+  toUpdateRequests,
+} from "@/shopping_list/main.js";
 
 function fakeClient(overrides: Partial<GasClientApi> = {}): GasClientApi {
   return {
@@ -13,20 +20,14 @@ function fakeClient(overrides: Partial<GasClientApi> = {}): GasClientApi {
 }
 
 describe("parseArgs", () => {
-  it("parses dispatch with text joined from positional args", () => {
-    expect(parseArgs(["node", "cli", "dispatch", "<@U1>", "牛乳"])).toEqual({
-      subcommand: "dispatch",
-      text: "<@U1> 牛乳",
-    });
+  it("parses each subcommand without taking positional text", () => {
+    expect(parseArgs(["node", "cli", "dispatch"])).toEqual({ subcommand: "dispatch" });
+    expect(parseArgs(["node", "cli", "update"])).toEqual({ subcommand: "update" });
+    expect(parseArgs(["node", "cli", "purge"])).toEqual({ subcommand: "purge" });
   });
 
-  it("parses dispatch with empty text when no positional follows", () => {
-    expect(parseArgs(["node", "cli", "dispatch"])).toEqual({ subcommand: "dispatch", text: "" });
-  });
-
-  it("parses update and purge", () => {
-    expect(parseArgs(["node", "cli", "update"])).toEqual({ subcommand: "update", text: "" });
-    expect(parseArgs(["node", "cli", "purge"])).toEqual({ subcommand: "purge", text: "" });
+  it("ignores extra positional args after the subcommand", () => {
+    expect(parseArgs(["node", "cli", "dispatch", "ignored"])).toEqual({ subcommand: "dispatch" });
   });
 
   it("throws on unknown subcommand", () => {
@@ -38,12 +39,35 @@ describe("parseArgs", () => {
   });
 });
 
+describe("extractTextFromSlackEvents", () => {
+  it("extracts text from an array of Slack events", () => {
+    const payload = [
+      { type: "app_mention", text: "<@U0AMQMUH2L9> テスト" },
+      { type: "app_mention", text: "<@U0AMQMUH2L9> 牛乳" },
+    ];
+    expect(extractTextFromSlackEvents(payload)).toBe("<@U0AMQMUH2L9> テスト\n<@U0AMQMUH2L9> 牛乳");
+  });
+
+  it("accepts a single event object", () => {
+    expect(extractTextFromSlackEvents({ text: "hello" })).toBe("hello");
+  });
+
+  it("skips events without a string text field", () => {
+    const payload = [{ text: "kept" }, { text: 123 }, {}, null, "string"];
+    expect(extractTextFromSlackEvents(payload)).toBe("kept");
+  });
+
+  it("returns an empty string for an empty array", () => {
+    expect(extractTextFromSlackEvents([])).toBe("");
+  });
+});
+
 describe("runDispatch", () => {
   it("returns a list payload with BlockKit blocks when text is empty after stripping mentions", async () => {
     const items: ShoppingItem[] = [{ id: 2, items: "牛乳", disabled: false }];
     const client = fakeClient({ list: vi.fn(async () => items) });
 
-    const out = await runDispatch("<@U123>", client);
+    const out = await runDispatch([{ text: "<@U123>" }], client);
 
     expect(client.list).toHaveBeenCalledOnce();
     expect(client.add).not.toHaveBeenCalled();
@@ -56,11 +80,20 @@ describe("runDispatch", () => {
   it("adds newline-split items when text remains after stripping mentions", async () => {
     const client = fakeClient();
 
-    const out = await runDispatch("<@U123> 牛乳\nパン\n\n  卵 ", client);
+    const out = await runDispatch([{ text: "<@U123> 牛乳\nパン\n\n  卵 " }], client);
 
     expect(client.add).toHaveBeenCalledWith(["牛乳", "パン", "卵"]);
     expect(client.list).not.toHaveBeenCalled();
     expect(out).toEqual({ success: true, kind: "added", count: 3 });
+  });
+
+  it("joins text from multiple Slack events", async () => {
+    const client = fakeClient();
+
+    const out = await runDispatch([{ text: "<@U123> 牛乳" }, { text: "パン" }], client);
+
+    expect(client.add).toHaveBeenCalledWith(["牛乳", "パン"]);
+    expect(out).toEqual({ success: true, kind: "added", count: 2 });
   });
 });
 
