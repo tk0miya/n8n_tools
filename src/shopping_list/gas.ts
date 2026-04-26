@@ -9,6 +9,11 @@ export interface UpdateRequest {
   checked: boolean;
 }
 
+export interface UpdateResult {
+  matched: number;
+  skipped: string[];
+}
+
 interface GasResponse<T> {
   success: boolean;
   data?: T;
@@ -18,7 +23,7 @@ interface GasResponse<T> {
 export interface GasClientApi {
   list(): Promise<ShoppingItem[]>;
   add(items: string[]): Promise<void>;
-  update(updates: UpdateRequest[]): Promise<void>;
+  update(updates: UpdateRequest[]): Promise<UpdateResult>;
   purge(): Promise<number>;
 }
 
@@ -47,8 +52,9 @@ export class GasClient implements GasClientApi {
     await this.post({ action: "add", items });
   }
 
-  async update(updates: UpdateRequest[]): Promise<void> {
-    await this.post({ action: "update", updates });
+  async update(updates: UpdateRequest[]): Promise<UpdateResult> {
+    const data = await this.post<UpdateResult>({ action: "update", updates });
+    return data ?? { matched: 0, skipped: [] };
   }
 
   async purge(): Promise<number> {
