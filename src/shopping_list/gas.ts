@@ -1,11 +1,11 @@
 export interface ShoppingItem {
-  id: number;
+  id: string;
   items: string;
   disabled: boolean;
 }
 
 export interface UpdateRequest {
-  id: number;
+  id: string;
   checked: boolean;
 }
 
@@ -48,9 +48,7 @@ export class GasClient implements GasClientApi {
   }
 
   async update(updates: UpdateRequest[]): Promise<void> {
-    // GAS still expects the legacy `rowNumber` key on the wire; map at the boundary.
-    const wireUpdates = updates.map((u) => ({ rowNumber: u.id, checked: u.checked }));
-    await this.post({ action: "update", updates: wireUpdates });
+    await this.post({ action: "update", updates });
   }
 
   async purge(): Promise<number> {

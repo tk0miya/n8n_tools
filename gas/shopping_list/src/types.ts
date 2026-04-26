@@ -1,12 +1,11 @@
 interface ShoppingItem {
-  id: number;
-  rowNumber: number;
+  id: string;
   items: string;
   disabled: boolean;
 }
 
 interface UpdateRequest {
-  rowNumber: number;
+  id: string;
   checked: boolean;
 }
 

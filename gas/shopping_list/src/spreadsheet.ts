@@ -1,5 +1,15 @@
 const SPREADSHEET_ID = '1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA';
 const SHEET_NAME = 'shopping_list';
+const COL_ID = 1;
+const COL_ITEMS = 2;
+const COL_DISABLED = 3;
+
+interface ShoppingRow {
+  id: string;
+  rowNumber: number;
+  items: string;
+  disabled: boolean;
+}
 
 function getSheet(): GoogleAppsScript.Spreadsheet.Sheet {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -12,50 +22,51 @@ function parseDisabled(value: unknown): boolean {
   return value === true || value === 'true' || value === 'TRUE';
 }
 
-function getItems(): ShoppingItem[] {
-  const sheet = getSheet();
+function loadShoppingList(sheet: GoogleAppsScript.Spreadsheet.Sheet): ShoppingRow[] {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return [];
+  const data = sheet.getRange(2, COL_ID, lastRow - 1, 3).getValues();
+  return data.map((row, index) => ({
+    id: String(row[0]),
+    rowNumber: index + 2,
+    items: String(row[1]),
+    disabled: parseDisabled(row[2]),
+  }));
+}
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
-  return data
-    .map((row, index) => ({
-      id: index + 2,
-      rowNumber: index + 2,
-      items: String(row[0]),
-      disabled: parseDisabled(row[1]),
-    }))
-    .filter(item => item.items.trim() !== '' && !item.disabled);
+function getItems(): ShoppingItem[] {
+  const sheet = getSheet();
+  return loadShoppingList(sheet)
+    .filter(row => row.items.trim() !== '' && !row.disabled)
+    .map(({ id, items, disabled }) => ({ id, items, disabled }));
 }
 
 function addItems(items: string[]): void {
   const sheet = getSheet();
   for (const item of items.filter((i) => i.trim() !== "")) {
-    sheet.appendRow([item.trim(), ""]);
+    sheet.appendRow([Utilities.getUuid(), item.trim(), ""]);
   }
 }
 
 function updateCheckedState(updates: UpdateRequest[]): void {
   const sheet = getSheet();
-  updates.forEach(({ rowNumber, checked }) => {
-    sheet.getRange(rowNumber, 2).setValue(checked ? 'true' : '');
+  const rows = loadShoppingList(sheet);
+  updates.forEach(({ id, checked }) => {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    sheet.getRange(row.rowNumber, COL_DISABLED).setValue(checked ? 'true' : '');
   });
 }
 
 function purgeCompletedItems(): number {
   const sheet = getSheet();
-  const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return 0;
-
-  const data = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
-  const rowsToDelete = data
-    .map((row, index) => ({ rowNumber: index + 2, disabled: parseDisabled(row[0]) }))
-    .filter(item => item.disabled)
-    .map(item => item.rowNumber)
+  const rowsToDelete = loadShoppingList(sheet)
+    .filter(row => row.disabled)
+    .map(row => row.rowNumber)
     .sort((a, b) => b - a);
 
-  for (const row of rowsToDelete) {
-    sheet.deleteRow(row);
+  for (const rowNumber of rowsToDelete) {
+    sheet.deleteRow(rowNumber);
   }
   return rowsToDelete.length;
 }
