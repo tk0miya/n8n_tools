@@ -42,7 +42,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const stdout = $input.first().json.stdout;\nconst repos = JSON.parse(stdout);\n\nconst lines = repos.map(repo => {\n  const problems = [];\n\n  if (repo.pullRequests && repo.pullRequests.length > 0) {\n    for (const pr of repo.pullRequests) {\n      problems.push(`    • <${pr.url}|${pr.title}>`);\n    }\n  }\n  if (repo.noActionlint) {\n    problems.push(`• actionlint が導入されていません`);\n  }\n  if (repo.outdatedLanguages) {\n    for (const lang of repo.outdatedLanguages) {\n      problems.push(`• 利用している ${lang} バージョンが古い可能性があります `);\n    }\n  }\n\n  return `*<${repo.url}|${repo.name}>*\\n${problems.join('\\n')}`;\n});\n\nreturn [{ json: { text: lines.join('\\n\\n') } }];"
+        "jsCode": "const stdout = $input.first().json.stdout;\nconst repos = JSON.parse(stdout);\n\nconst lines = repos.map(repo => {\n  const problems = [];\n\n  if (repo.pullRequests && repo.pullRequests.length > 0) {\n    for (const pr of repo.pullRequests) {\n      problems.push(`    • <${pr.url}|${pr.title}>`);\n    }\n  }\n  if (repo.noActionlint) {\n    problems.push(`• actionlint が導入されていません`);\n  }\n  if (repo.noDependabot) {\n    problems.push(`• dependabot が導入されていません`);\n  }\n  if (repo.noDependabotCooldown) {\n    problems.push(`• dependabot に cooldown が設定されていません`);\n  }\n  if (repo.outdatedLanguages) {\n    for (const lang of repo.outdatedLanguages) {\n      problems.push(`• 利用している ${lang} バージョンが古い可能性があります `);\n    }\n  }\n\n  return `*<${repo.url}|${repo.name}>*\\n${problems.join('\\n')}`;\n});\n\nreturn [{ json: { text: lines.join('\\n\\n') } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
