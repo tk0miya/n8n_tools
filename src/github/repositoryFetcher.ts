@@ -47,11 +47,14 @@ async function buildRepository(
   repo: OctokitRepo,
   labels: readonly string[],
 ): Promise<Repository> {
-  const [pullRequests, workflows, dependabot] = await Promise.all([
+  const repoFullName = `${login}/${repo.name}`;
+  const [pullRequests, workflows] = await Promise.all([
     fetchPullRequests(client, login, repo.name, labels),
-    analyzeWorkflows(client, `${login}/${repo.name}`),
-    analyzeDependabot(client, `${login}/${repo.name}`),
+    analyzeWorkflows(client, repoFullName),
   ]);
+  const dependabot = workflows.hasWorkflows
+    ? await analyzeDependabot(client, repoFullName)
+    : { noDependabot: false, noDependabotCooldown: false };
 
   return {
     name: repo.name,
