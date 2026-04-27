@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fetchRepositories, isActiveRepo } from "@/github/repositoryFetcher.js";
 
 vi.mock("@/github/workflowParser.js", () => ({
-  analyzeWorkflows: vi.fn().mockResolvedValue({ languageVersions: {}, noActionlint: false }),
+  analyzeWorkflows: vi.fn().mockResolvedValue({ hasWorkflows: true, languageVersions: {}, noActionlint: false }),
 }));
 vi.mock("@/github/dependabotParser.js", () => ({
   analyzeDependabot: vi.fn().mockResolvedValue({ noDependabot: false, noDependabotCooldown: false }),
@@ -123,6 +123,7 @@ describe("fetchRepositories", () => {
 
   it("passes language versions from workflow analysis", async () => {
     vi.mocked(analyzeWorkflows).mockResolvedValueOnce({
+      hasWorkflows: true,
       languageVersions: { ruby: ["3.1", "3.2"] },
       noActionlint: false,
     });
@@ -132,6 +133,23 @@ describe("fetchRepositories", () => {
 
     const result = await fetchRepositories(client);
     expect(result[0]?.languageVersions).toEqual({ ruby: ["3.1", "3.2"] });
+  });
+
+  it("skips dependabot analysis when the repo has no workflows", async () => {
+    vi.mocked(analyzeWorkflows).mockResolvedValueOnce({
+      hasWorkflows: false,
+      languageVersions: {},
+      noActionlint: false,
+    });
+    vi.mocked(analyzeDependabot).mockClear();
+
+    const repos = [fakeRepo({ name: "data-only" })];
+    const client = buildClient({ repos });
+
+    const result = await fetchRepositories(client);
+    expect(analyzeDependabot).not.toHaveBeenCalled();
+    expect(result[0]?.noDependabot).toBe(false);
+    expect(result[0]?.noDependabotCooldown).toBe(false);
   });
 
   it("returns empty pull request list when access is forbidden (403)", async () => {

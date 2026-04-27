@@ -8,6 +8,16 @@ function encode(content: string): string {
 }
 
 describe("analyzeWorkflowFiles", () => {
+  describe("hasWorkflows", () => {
+    it("returns false when no workflow files exist", () => {
+      expect(analyzeWorkflowFiles([]).hasWorkflows).toBe(false);
+    });
+
+    it("returns true when at least one workflow file exists", () => {
+      expect(analyzeWorkflowFiles(["name: CI"]).hasWorkflows).toBe(true);
+    });
+  });
+
   describe("noActionlint", () => {
     it("returns false when no workflow files exist", () => {
       expect(analyzeWorkflowFiles([]).noActionlint).toBe(false);

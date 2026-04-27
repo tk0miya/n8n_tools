@@ -11,6 +11,7 @@ const LANGUAGE_KEYS = {
 const MATRIX_REF_PATTERN = /^\$\{\{\s*matrix\.([\w-]+)\s*\}\}$/;
 
 export interface WorkflowAnalysis {
+  hasWorkflows: boolean;
   languageVersions: Record<string, string[]>;
   noActionlint: boolean;
 }
@@ -22,6 +23,7 @@ export async function analyzeWorkflows(client: Octokit, repoFullName: string): P
 
 export function analyzeWorkflowFiles(files: string[]): WorkflowAnalysis {
   return {
+    hasWorkflows: files.length > 0,
     languageVersions: extractAllLanguageVersions(files),
     noActionlint: files.length > 0 && files.every((f) => !/\bactionlint\b/.test(f)),
   };
