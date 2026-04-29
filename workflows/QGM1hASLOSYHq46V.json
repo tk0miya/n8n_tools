@@ -163,7 +163,7 @@
   "staticData": {
     "node:2時間おきに": {
       "recurrenceRules": [
-        16
+        0
       ]
     }
   },
@@ -173,7 +173,7 @@
   "pinData": {},
   "versionId": "072a66eb-f356-4ba2-ac47-005d33edfa8f",
   "activeVersionId": "072a66eb-f356-4ba2-ac47-005d33edfa8f",
-  "versionCounter": 209,
+  "versionCounter": 309,
   "triggerCount": 1,
   "tags": [],
   "shared": [

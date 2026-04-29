@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-06T16:36:59.874Z",
+  "updatedAt": "2026-04-26T15:25:24.677Z",
   "createdAt": "2026-03-18T11:16:38.911Z",
   "id": "YkftrLwYHXH93yuq",
   "name": "買い物リスト管理",
@@ -7,94 +7,6 @@
   "active": true,
   "isArchived": false,
   "nodes": [
-    {
-      "parameters": {
-        "authentication": "serviceAccount",
-        "documentId": {
-          "__rl": true,
-          "value": "1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA",
-          "mode": "list",
-          "cachedResultName": "n8n/shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit#gid=0"
-        },
-        "filtersUI": {
-          "values": []
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        416,
-        -272
-      ],
-      "id": "f0b31733-d531-41cc-bf71-b88ef1611bd2",
-      "name": "買い物リスト取得",
-      "alwaysOutputData": true,
-      "credentials": {
-        "googleApi": {
-          "id": "f8xltvy99XfFdPXT",
-          "name": "Google Spread Sheet Service Account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const rows = $input\n               .all()\n               .filter(row => Object.keys(row.json).length > 0);\nconst options = rows\n  .filter(row => row.json['disabled'] != true)\n  .map(row => ({\n    text: {\n      type: \"plain_text\",\n      text: row.json['items']\n    },\n    value: String(row.json['row_number'])\n  }));\n\nif (options.length == 0) {\n  return [{\n    json: {\n      payload: JSON.stringify({\n        blocks: [\n          {\n            type: \"section\",\n            text: {\n              type: \"mrkdwn\",\n              text: \"買い物リストは空です\"\n            }\n          }\n        ]\n      })\n    }\n  }];\n}\n\n// 10個ずつに分割してactionsブロックを生成\nconst chunkSize = 10;\nconst actionBlocks = [];\nfor (let i = 0; i < options.length; i += chunkSize) {\n  const chunk = options.slice(i, i + chunkSize);\n  const index = Math.floor(i / chunkSize) + 1;\n  actionBlocks.push({\n    type: \"actions\",\n    elements: [\n      {\n        type: \"checkboxes\",\n        options: chunk,\n        action_id: `checkbox_action_${index}`\n      }\n    ]\n  });\n}\n\nreturn [{\n  json: {\n    payload: JSON.stringify({\n      blocks: [\n        {\n          type: \"section\",\n          text: {\n            type: \"mrkdwn\",\n            text: \"買い物リスト：\"\n          }\n        },\n        ...actionBlocks\n      ]\n    })\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        608,
-        -272
-      ],
-      "id": "f4a6d1f1-915d-4b5e-8f52-7c28e23434a1",
-      "name": "買い物リスト生成"
-    },
-    {
-      "parameters": {
-        "select": "channel",
-        "channelId": {
-          "__rl": true,
-          "value": "={{ $('Slack メンション').item.json.channel }}",
-          "mode": "id"
-        },
-        "messageType": "block",
-        "blocksUi": "={{ $json.payload }}",
-        "text": "blah blah blah",
-        "otherOptions": {
-          "includeLinkToWorkflow": false,
-          "botProfile": {
-            "imageValues": {
-              "profilePhotoType": "emoji",
-              "icon_emoji": "shopping_trolley"
-            }
-          }
-        }
-      },
-      "type": "n8n-nodes-base.slack",
-      "typeVersion": 2.4,
-      "position": [
-        800,
-        -272
-      ],
-      "id": "b2c7dfc6-fb6a-4acd-9b11-b5a1739496ac",
-      "name": "買い物リスト送信",
-      "webhookId": "67b4bddc-f235-4f59-8424-8ee5d9399b48",
-      "credentials": {
-        "slackApi": {
-          "id": "u023lHhO0RxPltWG",
-          "name": "Slack account"
-        }
-      }
-    },
     {
       "parameters": {
         "httpMethod": "POST",
@@ -110,98 +22,6 @@
       "id": "0b4e7127-a09d-4f2b-918c-407797f305bf",
       "name": "買い物リストにチェック",
       "webhookId": "0e439d56-8a39-4433-ba7b-3462ec1073a6"
-    },
-    {
-      "parameters": {
-        "jsCode": "const payload = JSON.parse($json.body.payload);\n\n// チェックされた項目を全ブロックから収集\nconst checked = [];\nfor (const blockState of Object.values(payload.state.values)) {\n  for (const [actionId, actionState] of Object.entries(blockState)) {\n    if (actionId.startsWith('checkbox_action')) {\n      actionState.selected_options.forEach(o => checked.push(o.value));\n    }\n  }\n}\n\n// メッセージ内の全 actions ブロックから選択肢を収集\nconst items = payload.message.blocks\n  .filter(b => b.type === 'actions')\n  .flatMap(b => b.elements[0].options.map(o => o.value));\n\n// 全項目にチェック状態を付与して展開\nreturn items.map(rowNumber => ({\n  json: {\n    rowNumber,\n    checked: checked.includes(rowNumber)\n  }\n}));"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        208,
-        96
-      ],
-      "id": "5a591ea4-2e1e-4039-b630-d7578ce7f1fb",
-      "name": "買い物リスト更新準備"
-    },
-    {
-      "parameters": {
-        "authentication": "serviceAccount",
-        "operation": "update",
-        "documentId": {
-          "__rl": true,
-          "value": "1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA",
-          "mode": "list",
-          "cachedResultName": "n8n/shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit#gid=0"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "row_number": "={{ $json.rowNumber }}",
-            "disabled": "={{ String($json.checked) }}"
-          },
-          "matchingColumns": [
-            "row_number"
-          ],
-          "schema": [
-            {
-              "id": "items",
-              "displayName": "items",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "disabled",
-              "displayName": "disabled",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "row_number",
-              "displayName": "row_number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "readOnly": true,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        416,
-        96
-      ],
-      "id": "3d7ed5fa-f596-45f2-8a85-afe11a88dcd9",
-      "name": "買い物リスト更新",
-      "credentials": {
-        "googleApi": {
-          "id": "f8xltvy99XfFdPXT",
-          "name": "Google Spread Sheet Service Account"
-        }
-      }
     },
     {
       "parameters": {
@@ -229,97 +49,6 @@
     },
     {
       "parameters": {
-        "authentication": "serviceAccount",
-        "operation": "append",
-        "documentId": {
-          "__rl": true,
-          "value": "1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA",
-          "mode": "list",
-          "cachedResultName": "n8n/shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit#gid=0"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "items": "={{ $json.item }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "items",
-              "displayName": "items",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "disabled",
-              "displayName": "disabled",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        608,
-        -112
-      ],
-      "id": "79916821-7519-438c-99b7-0608a8999df7",
-      "name": "買い物リストに追加",
-      "credentials": {
-        "googleApi": {
-          "id": "f8xltvy99XfFdPXT",
-          "name": "Google Spread Sheet Service Account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "reaction",
-        "channelId": {
-          "__rl": true,
-          "value": "={{ $('Slack メンション').item.json.channel }}",
-          "mode": "id"
-        },
-        "timestamp": "={{ $('Slack メンション').item.json.ts }}",
-        "name": "white_check_mark"
-      },
-      "type": "n8n-nodes-base.slack",
-      "typeVersion": 2.4,
-      "position": [
-        800,
-        -112
-      ],
-      "id": "202d589f-dfa4-4bb9-9d6d-c5473b155003",
-      "name": "買い物リスト追加完了",
-      "webhookId": "67f6db3e-488d-415e-b07c-e9855ddf306a",
-      "credentials": {
-        "slackApi": {
-          "id": "u023lHhO0RxPltWG",
-          "name": "Slack account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "rule": {
           "interval": [
             {}
@@ -337,93 +66,29 @@
     },
     {
       "parameters": {
-        "authentication": "serviceAccount",
-        "documentId": {
-          "__rl": true,
-          "value": "1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA",
-          "mode": "list",
-          "cachedResultName": "n8n/shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit#gid=0"
-        },
-        "filtersUI": {
-          "values": [
-            {
-              "lookupColumn": "disabled",
-              "lookupValue": "true"
-            }
-          ]
-        },
-        "options": {}
+        "command": "cd /files/n8n_tools\nnpx tsx src/shopping_list/cli.ts purge"
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
       "position": [
         208,
         304
       ],
-      "id": "7ef2b0e0-97cf-4c57-bc18-017820866623",
-      "name": "購入済みアイテムの抽出",
-      "credentials": {
-        "googleApi": {
-          "id": "f8xltvy99XfFdPXT",
-          "name": "Google Spread Sheet Service Account"
-        }
-      }
+      "id": "3de8a3cd-9ac7-4319-83d8-a989dc8e45b5",
+      "name": "shopping_list purge"
     },
     {
       "parameters": {
-        "jsCode": "return $input.all().sort((a, b) => b.json['row_number'] - a.json['row_number'])"
+        "command": "=cd /files/n8n_tools\ncat <<'__SLACK_PAYLOAD_END__' | npx tsx src/shopping_list/cli.ts dispatch\n{{ JSON.stringify($json) }}\n__SLACK_PAYLOAD_END__"
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
       "position": [
-        416,
-        304
+        208,
+        -176
       ],
-      "id": "2da48f83-fdbe-47e0-a56e-56b03a19d69e",
-      "name": "逆順ソート"
-    },
-    {
-      "parameters": {
-        "authentication": "serviceAccount",
-        "operation": "delete",
-        "documentId": {
-          "__rl": true,
-          "value": "1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA",
-          "mode": "list",
-          "cachedResultName": "n8n/shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "shopping_list",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XOKUW91PD_I57k4WRxRcv2dRTHMjTAKDCbzxmV4hZzA/edit#gid=0"
-        },
-        "startIndex": "={{ $json.row_number }}"
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        624,
-        304
-      ],
-      "id": "c77818ed-484c-4ec8-bab2-510c54a0605a",
-      "name": "購入済みアイテムの削除",
-      "credentials": {
-        "googleApi": {
-          "id": "f8xltvy99XfFdPXT",
-          "name": "Google Spread Sheet Service Account"
-        }
-      }
+      "id": "2d0003ca-a3ba-4b52-9896-c7361b3350e4",
+      "name": "shopping_list dispatch"
     },
     {
       "parameters": {
@@ -439,10 +104,10 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.text.replace(/<@.*?>/g, '').trim().length }}",
-                    "rightValue": 0,
+                    "leftValue": "={{ JSON.parse($json.stdout).kind }}",
+                    "rightValue": "list",
                     "operator": {
-                      "type": "number",
+                      "type": "string",
                       "operation": "equals"
                     },
                     "id": "3eeebb25-04ef-4168-b4c8-e8829128805e"
@@ -451,7 +116,7 @@
                 "combinator": "and"
               },
               "renameOutput": true,
-              "outputKey": "引数なし"
+              "outputKey": "list"
             }
           ]
         },
@@ -462,66 +127,109 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        208,
+        416,
         -176
       ],
-      "id": "3f61f477-a897-4b12-bda2-f25c8d645592",
-      "name": "引数あり?"
+      "id": "dbf81f66-2c9f-4300-9da9-2db1fd4c9942",
+      "name": "list? add?"
     },
     {
       "parameters": {
-        "jsCode": "const text = $input.first().json.text;\nconst argument = text.replace(/<@.*?>/g, '').trim();\n\n// 改行で分割して空行を除去\nconst items = argument.split('\\n').map(t => t.trim()).filter(t => t.length > 0);\n\nreturn items.map(item => ({\n  json: {\n    ...$json,\n    item\n  }\n}));"
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Slack メンション').item.json.channel }}",
+          "mode": "id"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ JSON.stringify({ blocks: JSON.parse($('shopping_list dispatch').item.json.stdout).blocks }) }}",
+        "text": "blah blah blah",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": "shopping_trolley"
+            }
+          }
+        }
       },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
       "position": [
-        416,
+        672,
+        -256
+      ],
+      "id": "74ca8192-a081-4d9e-b8fb-649917694671",
+      "name": "買い物リスト送信",
+      "webhookId": "67b4bddc-f235-4f59-8424-8ee5d9399b48",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "reaction",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Slack メンション').item.json.channel }}",
+          "mode": "id"
+        },
+        "timestamp": "={{ $('Slack メンション').item.json.ts }}",
+        "name": "white_check_mark"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        672,
         -112
       ],
-      "id": "f693506a-38ca-4374-95cc-2bc1962dd91b",
-      "name": "Code in JavaScript",
-      "executeOnce": false
+      "id": "e0d6858d-3d97-4260-9a7b-63faac883783",
+      "name": "買い物リスト追加完了",
+      "webhookId": "67f6db3e-488d-415e-b07c-e9855ddf306a",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=cd /files/n8n_tools\ncat <<'__SLACK_PAYLOAD_END__' | npx tsx src/slackutils/checkboxes/cli.ts\n{{ $json.body.payload }}\n__SLACK_PAYLOAD_END__"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        208,
+        96
+      ],
+      "id": "4242d2a4-5455-4eee-b97f-921dcd4f388b",
+      "name": "チェックボックス展開"
+    },
+    {
+      "parameters": {
+        "command": "=cd /files/n8n_tools\ncat <<'__STATE_MAP_END__' | npx tsx src/shopping_list/cli.ts update\n{{ $json.stdout }}\n__STATE_MAP_END__"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        416,
+        96
+      ],
+      "id": "8a7fde31-cbf4-4dcf-a84f-d355d051f3ca",
+      "name": "shopping_list update"
     }
   ],
   "connections": {
-    "買い物リスト取得": {
-      "main": [
-        [
-          {
-            "node": "買い物リスト生成",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "買い物リスト生成": {
-      "main": [
-        [
-          {
-            "node": "買い物リスト送信",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "買い物リストにチェック": {
       "main": [
         [
           {
-            "node": "買い物リスト更新準備",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "買い物リスト更新準備": {
-      "main": [
-        [
-          {
-            "node": "買い物リスト更新",
+            "node": "チェックボックス展開",
             "type": "main",
             "index": 0
           }
@@ -532,18 +240,7 @@
       "main": [
         [
           {
-            "node": "引数あり?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "買い物リストに追加": {
-      "main": [
-        [
-          {
-            "node": "買い物リスト追加完了",
+            "node": "shopping_list dispatch",
             "type": "main",
             "index": 0
           }
@@ -554,58 +251,52 @@
       "main": [
         [
           {
-            "node": "購入済みアイテムの抽出",
+            "node": "shopping_list purge",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "購入済みアイテムの抽出": {
+    "shopping_list purge": {
+      "main": [
+        []
+      ]
+    },
+    "shopping_list dispatch": {
       "main": [
         [
           {
-            "node": "逆順ソート",
+            "node": "list? add?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "逆順ソート": {
+    "list? add?": {
       "main": [
         [
           {
-            "node": "購入済みアイテムの削除",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "引数あり?": {
-      "main": [
-        [
-          {
-            "node": "買い物リスト取得",
+            "node": "買い物リスト送信",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Code in JavaScript",
+            "node": "買い物リスト追加完了",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code in JavaScript": {
+    "チェックボックス展開": {
       "main": [
         [
           {
-            "node": "買い物リストに追加",
+            "node": "shopping_list update",
             "type": "main",
             "index": 0
           }
@@ -629,9 +320,9 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "4d6a8390-5af1-42de-893f-958a2b1822d8",
-  "activeVersionId": "4d6a8390-5af1-42de-893f-958a2b1822d8",
-  "versionCounter": 513,
+  "versionId": "7caf9b32-9185-4d82-a959-7114bfce4f3b",
+  "activeVersionId": "7caf9b32-9185-4d82-a959-7114bfce4f3b",
+  "versionCounter": 721,
   "triggerCount": 3,
   "tags": [],
   "shared": [
@@ -654,7 +345,7 @@
     }
   ],
   "versionMetadata": {
-    "name": "Version 4d6a8390",
+    "name": "Version 7caf9b32",
     "description": ""
   }
 }
