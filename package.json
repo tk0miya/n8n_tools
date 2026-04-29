@@ -23,7 +23,7 @@
     "@biomejs/biome": "^2.4.13",
     "@types/dedent": "^0.7.2",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^25.6.0",
+    "@types/node": "^24.12.2",
     "dedent": "^1.7.2",
     "playwright": "^1.59.1",
     "tsx": "^4.21.0",
