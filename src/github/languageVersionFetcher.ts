@@ -10,18 +10,23 @@ const LANGUAGE_RELEASE_REPOS: ReadonlyMap<string, string> = new Map([
 
 const STABLE_TAG_RE = /^v?\d+\.\d+[._]\d+$/;
 
-/** Languages where only even-numbered major versions count as stable (LTS). */
-const LTS_EVEN_MAJOR_LANGUAGES: ReadonlySet<string> = new Set(["node"]);
-
 export async function fetchLatestLanguageVersions(client: Octokit): Promise<Map<string, VersionTuple>> {
   const entries = await Promise.all(
     [...LANGUAGE_RELEASE_REPOS].map(async ([lang, repo]) => {
-      const ltsOnly = LTS_EVEN_MAJOR_LANGUAGES.has(lang);
-      const tag = ltsOnly ? await fetchLatestLtsTag(client, repo) : await fetchLatestReleaseTag(client, repo);
-      return [lang, parseTagToVersion(tag)] as const;
+      const version = await fetchLatestVersion(client, lang, repo);
+      return [lang, version] as const;
     }),
   );
   return new Map(entries);
+}
+
+async function fetchLatestVersion(client: Octokit, lang: string, repo: string): Promise<VersionTuple> {
+  switch (lang) {
+    case "node":
+      return fetchLatestNodeLtsVersion(client);
+    default:
+      return parseTagToVersion(await fetchLatestReleaseTag(client, repo));
+  }
 }
 
 function splitRepo(fullName: string): { owner: string; repo: string } {
@@ -42,16 +47,29 @@ async function fetchLatestReleaseTag(client: Octokit, repoFullName: string): Pro
   }
 }
 
-async function fetchLatestLtsTag(client: Octokit, repoFullName: string): Promise<string> {
-  const { owner, repo } = splitRepo(repoFullName);
-  const { data: tags } = await client.rest.repos.listTags({ owner, repo, per_page: 100 });
-  const lts = tags.find((t) => {
-    if (!STABLE_TAG_RE.test(t.name)) return false;
-    const major = Number(t.name.replace(/^v/, "").split(/[._]/)[0]);
-    return major % 2 === 0;
+async function fetchLatestNodeLtsVersion(client: Octokit): Promise<VersionTuple> {
+  const { data } = await client.rest.repos.getContent({
+    owner: "nodejs",
+    repo: "Release",
+    path: "schedule.json",
   });
-  if (!lts) throw new Error(`No LTS release found for ${repoFullName}`);
-  return lts.name;
+  if (Array.isArray(data) || !("content" in data) || !data.content) {
+    throw new Error("Failed to fetch nodejs/Release schedule.json");
+  }
+  const json = JSON.parse(Buffer.from(data.content, "base64").toString("utf-8")) as Record<string, unknown>;
+  const today = new Date();
+  let maxMajor = -1;
+  for (const [key, entry] of Object.entries(json)) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const { lts, end } = entry as { lts?: string; end?: string };
+    if (!lts || !end) continue;
+    if (new Date(lts) <= today && today < new Date(end)) {
+      const major = Number(key.replace(/^v/, ""));
+      if (Number.isFinite(major) && major > maxMajor) maxMajor = major;
+    }
+  }
+  if (maxMajor < 0) throw new Error("No active Node.js LTS major found");
+  return [maxMajor, 99];
 }
 
 function parseTagToVersion(tag: string): VersionTuple {
