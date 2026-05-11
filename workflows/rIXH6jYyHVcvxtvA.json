@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-26T12:49:00.836Z",
+  "updatedAt": "2026-05-08T07:00:58.812Z",
   "createdAt": "2026-03-31T17:30:35.534Z",
   "id": "rIXH6jYyHVcvxtvA",
   "name": "リポジトリの状態チェック",
@@ -22,7 +22,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const stdout = $input.first().json.stdout;\nconst repos = JSON.parse(stdout);\n\nconst lines = repos.map(repo => {\n  const problems = [];\n\n  if (repo.pullRequests && repo.pullRequests.length > 0) {\n    for (const pr of repo.pullRequests) {\n      problems.push(`    • <${pr.url}|${pr.title}>`);\n    }\n  }\n  if (repo.noActionlint) {\n    problems.push(`• actionlint が導入されていません`);\n  }\n  if (repo.outdatedLanguages) {\n    for (const lang of repo.outdatedLanguages) {\n      problems.push(`• 利用している ${lang} バージョンが古い可能性があります `);\n    }\n  }\n\n  return `*<${repo.url}|${repo.name}>*\\n${problems.join('\\n')}`;\n});\n\nreturn [{ json: { text: lines.join('\\n\\n') } }];"
+        "jsCode": "const stdout = $input.first().json.stdout;\nconst repos = JSON.parse(stdout);\n\nif (repos.length === 0) {\n  return [];\n}\n\nconst lines = repos.map(repo => {\n  const problems = [];\n\n  if (repo.pullRequests && repo.pullRequests.length > 0) {\n    for (const pr of repo.pullRequests) {\n      problems.push(`    • <${pr.url}|${pr.title}>`);\n    }\n  }\n  if (repo.noActionlint) {\n    problems.push(`• actionlint が導入されていません`);\n  }\n  if (repo.noDependabot) {\n    problems.push(`• dependabot が導入されていません`);\n  }\n  if (repo.noDependabotCooldown) {\n    problems.push(`• dependabot に cooldown が設定されていません`);\n  }\n  if (repo.outdatedLanguages) {\n    for (const lang of repo.outdatedLanguages) {\n      problems.push(`• 利用している ${lang} バージョンが古い可能性があります `);\n    }\n  }\n\n  return `*<${repo.url}|${repo.name}>*\\n${problems.join('\\n')}`;\n});\n\nreturn [{ json: { text: lines.join('\\n\\n') } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -213,15 +213,22 @@
       "name": "ghscan の実行 (for auto-merge)"
     },
     {
-      "parameters": {},
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ghscan",
+        "options": {
+          "noResponseBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
       "position": [
         0,
         0
       ],
-      "id": "d75128e0-59a8-4361-acef-cb7f953836a5",
-      "name": "When clicking ‘Execute workflow’"
+      "id": "4994f875-be27-4778-985e-70d982f2a7ef",
+      "name": "/ghscan on Slack",
+      "webhookId": "3d37c086-cc47-44ff-a72b-ef5978694fe1"
     }
   ],
   "connections": {
@@ -308,7 +315,7 @@
         ]
       ]
     },
-    "When clicking ‘Execute workflow’": {
+    "/ghscan on Slack": {
       "main": [
         [
           {
@@ -339,10 +346,10 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "4eef46f7-cdac-471c-a0d1-e19da1bca3d0",
-  "activeVersionId": "4eef46f7-cdac-471c-a0d1-e19da1bca3d0",
-  "versionCounter": 282,
-  "triggerCount": 2,
+  "versionId": "e2ba4539-e01b-4790-8b83-2255514ac0e3",
+  "activeVersionId": "17a79f81-a91a-452a-b1c4-b245584c1958",
+  "versionCounter": 312,
+  "triggerCount": 3,
   "tags": [],
   "shared": [
     {
@@ -364,7 +371,7 @@
     }
   ],
   "versionMetadata": {
-    "name": "Version 4eef46f7",
-    "description": ""
+    "name": null,
+    "description": null
   }
 }
