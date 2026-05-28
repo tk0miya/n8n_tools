@@ -6,6 +6,9 @@ on:
     paths:
       - "gas/shopping_list/src/**"
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
