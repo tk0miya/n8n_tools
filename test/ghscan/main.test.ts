@@ -20,6 +20,7 @@ function repo(overrides: Partial<Repository> = {}): Repository {
     noActionlint: false,
     noDependabot: false,
     noDependabotCooldown: false,
+    noPackageCooldown: false,
     ...overrides,
   };
 }
@@ -33,6 +34,7 @@ function scanResult(overrides: Partial<ScanResult> = {}): ScanResult {
     noActionlint: false,
     noDependabot: false,
     noDependabotCooldown: false,
+    noPackageCooldown: false,
     ...overrides,
   };
 }
@@ -55,6 +57,7 @@ describe("toScanResult", () => {
       noActionlint: false,
       noDependabot: false,
       noDependabotCooldown: false,
+      noPackageCooldown: false,
     });
   });
 
@@ -112,6 +115,11 @@ describe("filterScanResults", () => {
   it("includes a result missing dependabot cooldown", () => {
     const results = [scanResult({ name: "no-cooldown", noDependabotCooldown: true })];
     expect(filterScanResults(results).map((r) => r.name)).toEqual(["no-cooldown"]);
+  });
+
+  it("includes a result missing package manager cooldown", () => {
+    const results = [scanResult({ name: "no-pkg-cooldown", noPackageCooldown: true })];
+    expect(filterScanResults(results).map((r) => r.name)).toEqual(["no-pkg-cooldown"]);
   });
 
   it("returns empty array for empty input", () => {
