@@ -1,6 +1,7 @@
 import { RequestError } from "@octokit/request-error";
 import type { Octokit } from "@octokit/rest";
 import * as yaml from "js-yaml";
+import { fetchFileContent } from "./content.js";
 
 const LANGUAGE_KEYS = {
   "ruby-version": "ruby",
@@ -47,13 +48,9 @@ export async function fetchWorkflowFiles(client: Octokit, repoFullName: string):
       if (!entry.name.endsWith(".yml") && !entry.name.endsWith(".yaml")) {
         continue;
       }
-      const { data: file } = await client.rest.repos.getContent({
-        owner,
-        repo,
-        path: entry.path,
-      });
-      if (!Array.isArray(file) && "content" in file && file.content) {
-        results.push(Buffer.from(file.content, "base64").toString("utf-8"));
+      const content = await fetchFileContent(client, owner, repo, entry.path);
+      if (content !== null) {
+        results.push(content);
       }
     }
     return results;
