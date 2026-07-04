@@ -14,7 +14,7 @@
     "@octokit/rest": "^22.0.1",
     "castv2-client": "^1.2.0",
     "dotenv": "^17.4.2",
-    "js-yaml": "^4.2.0"
+    "js-yaml": "^5.1.0"
   },
   "overrides": {
     "protobufjs": "^7.5.5"
@@ -22,7 +22,6 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.1",
     "@types/dedent": "^0.7.2",
-    "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.6.0",
     "dedent": "^1.7.2",
     "playwright": "^1.61.1",
