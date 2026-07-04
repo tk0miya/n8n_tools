@@ -1,6 +1,6 @@
 import { RequestError } from "@octokit/request-error";
 import type { Octokit } from "@octokit/rest";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 
 const DEPENDABOT_PATHS = [".github/dependabot.yml", ".github/dependabot.yaml"] as const;
 
