@@ -1,0 +1,289 @@
+{
+  "updatedAt": "2026-05-19T19:08:16.335Z",
+  "createdAt": "2026-05-12T18:18:40.936Z",
+  "id": "jMa9R865xw62ckVA",
+  "name": "体重計測通知",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "withings-notify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f48ca818-1fcb-4cd5-895a-a77ca12596b5",
+      "name": "OAuth endpoint (dummy)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        96,
+        128
+      ],
+      "webhookId": "withings-notify"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "withings-notify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "47176de6-3488-486b-8d7c-e59b443d78f2",
+      "name": "体重計測 (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        96,
+        304
+      ],
+      "webhookId": "withings-notify"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {}
+      },
+      "id": "ab2a776a-1e67-4878-bc7e-f3b003880465",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        320,
+        128
+      ],
+      "notes": "Withings は callback の応答を待たないので、まず 200 を即返す"
+    },
+    {
+      "parameters": {
+        "jsCode": "const THRESHOLD = 60 * 1000;\nconst body = $input.first().json.body || {};\nconst data = $getWorkflowStaticData('global');\nconst userid = body.userid;\n\n// 60秒以内の再通知は無視する\nconst lastMeasuredAt = data[userid]?.lastMeasuredAt;\nif (lastMeasuredAt && Date.now() - lastMeasuredAt < THRESHOLD) {\n  return [];\n}\n\n\ndata[userid] = {\n  lastMeasuredAt: Date.now()\n}\n\nlet username = \"誰か\";\nif (body.userid == 5020765) {\n  username = \"たけし\"\n}\n\nreturn [{ json: { userid, username }}];"
+      },
+      "id": "e1480ac7-576c-429d-b7bd-126a76bd3b26",
+      "name": "計測時刻の記録",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 22 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1793dfe3-b11a-448c-ae81-42c5fd78e9ae",
+      "name": "毎日22時に",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const THRESHOLD = 7 * 24 * 60 * 60 * 1000;\n\nconst data = $getWorkflowStaticData('global');\nconst userid = 5020765;\n\nif (!data[userid]) {\n  return [];\n}\n\nconst lastMeasuredAt = data[userid].lastMeasuredAt;\n\nif (Date.now() - lastMeasuredAt > THRESHOLD) {\n  return [{ json: {} }]\n}\n\nreturn [];"
+      },
+      "id": "badcceaa-e5be-43e4-ad23-4f8beae1d2e7",
+      "name": "7日計測していなかったら",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#random",
+          "mode": "name"
+        },
+        "text": "たけし さん、そろそろ体重計に乗りましょう",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "image",
+              "icon_url": "https://www-assets.withings.com/pages/products/body-comp/media/hero_2024/comphero_en.png"
+            }
+          },
+          "sendAsUser": "Withings"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        528,
+        512
+      ],
+      "id": "0ed10a28-0b38-4ffc-b52d-629b990231c1",
+      "name": "slackに通知",
+      "webhookId": "401f937d-06b1-4ff1-8ee6-f8e9ededb063",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#random",
+          "mode": "name"
+        },
+        "text": "={{ $json.username }} さんが体重計に乗りました",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": "https://www-assets.withings.com/pages/products/body-comp/media/hero_2024/comphero_en.png"
+            }
+          },
+          "sendAsUser": "Withings"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        528,
+        304
+      ],
+      "id": "b0746314-2d4c-4d96-b8ce-61e0c4bd28b5",
+      "name": "slackに通知1",
+      "webhookId": "401f937d-06b1-4ff1-8ee6-f8e9ededb063",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "OAuth endpoint (dummy)": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "体重計測 (webhook)": {
+      "main": [
+        [
+          {
+            "node": "計測時刻の記録",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "計測時刻の記録": {
+      "main": [
+        [
+          {
+            "node": "slackに通知1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "毎日22時に": {
+      "main": [
+        [
+          {
+            "node": "7日計測していなかったら",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7日計測していなかったら": {
+      "main": [
+        [
+          {
+            "node": "slackに通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Daily 9:00 Check": {
+      "recurrenceRules": []
+    },
+    "node:毎日22時に": {
+      "recurrenceRules": []
+    },
+    "global": {
+      "5020765": {
+        "lastMeasuredAt": 1783274426303
+      }
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "4f883132-682b-4265-897d-a597d29b2a94",
+  "activeVersionId": "4f883132-682b-4265-897d-a597d29b2a94",
+  "versionCounter": 280,
+  "triggerCount": 3,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-12T18:18:40.960Z",
+      "createdAt": "2026-05-12T18:18:40.960Z",
+      "role": "workflow:owner",
+      "workflowId": "jMa9R865xw62ckVA",
+      "projectId": "yHsQmZORZPbcy5z9",
+      "project": {
+        "updatedAt": "2026-03-18T11:12:41.262Z",
+        "createdAt": "2026-03-16T17:57:23.506Z",
+        "id": "yHsQmZORZPbcy5z9",
+        "name": "Takeshi KOMIYA <i.tkomiya@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1c19844f-d045-4284-87f7-cece9750f135"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 4f883132",
+    "description": ""
+  }
+}
