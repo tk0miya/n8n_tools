@@ -1,0 +1,234 @@
+{
+  "updatedAt": "2026-05-15T17:02:27.905Z",
+  "createdAt": "2026-05-15T16:55:42.401Z",
+  "id": "mLkGOALRzSkN7Esi",
+  "name": "歯磨きチェッカー",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 22
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        192
+      ],
+      "id": "f3c0231c-9547-4e99-afba-3f4dd2b0bdf0",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "function getTodayTimestamp() {\n  const now = new Date();\n  // 28時までをその日として扱う\n  now.setHours(now.getHours() - 4);\n  // その日の0時に丸める\n  now.setHours(0, 0, 0, 0);\n  return Math.floor(now.getTime() / 1000);\n}\n\nconst data = $getWorkflowStaticData('global');\ndata.lastBrushedAt = getTodayTimestamp();\n\nreturn [{ json: { code: 200 }}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "35617567-75b4-4ef4-bdba-782dc3bddf49",
+      "name": "歯磨き日を記録"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#workflow",
+          "mode": "name"
+        },
+        "text": "歯を磨きました",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": ":toothbrush:"
+            }
+          },
+          "sendAsUser": "歯磨き"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e8a20841-d20d-4e24-841a-feb30d1b40d4",
+      "name": "歯磨き通知",
+      "webhookId": "fa3ff154-d2c5-4460-8d7b-f0cf46cab7ac",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function getTimestamp(daysAgo) {\n  const now = new Date();\n  now.setDate(now.getDate() - daysAgo);\n  now.setHours(0, 0, 0, 0);\n  return Math.floor(now.getTime() / 1000);\n}\n\nconst data = $getWorkflowStaticData('global');\nif (data.lastBrushedAt <= getTimestamp(7)) {\n  return [{ json: { code: 200 }}];  \n} else {\n  return [];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        192
+      ],
+      "id": "cc8d2f50-866d-45a3-8f74-a071e0ac21af",
+      "name": "歯磨きしてから7日過ぎた?"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#workflow",
+          "mode": "name"
+        },
+        "text": "そろそろ歯を磨きましょう",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": ":toothbrush:"
+            }
+          },
+          "sendAsUser": "歯磨き"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        416,
+        192
+      ],
+      "id": "9fab169d-2eec-46af-b983-4fa95b098d92",
+      "name": "要歯磨き通知",
+      "webhookId": "eadee3f4-dcd7-4c69-a930-938ae5cdd148",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "teethbrushed",
+        "options": {
+          "noResponseBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "95b4588c-a77b-43e4-b11c-423b6be9afdf",
+      "name": "/teethbrushed on Slack",
+      "webhookId": "6f4f2e2b-ac4b-41f9-8813-0bc7740fddb9"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "歯磨きしてから7日過ぎた?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "歯磨き日を記録": {
+      "main": [
+        [
+          {
+            "node": "歯磨き通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "歯磨きしてから7日過ぎた?": {
+      "main": [
+        [
+          {
+            "node": "要歯磨き通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/teethbrushed on Slack": {
+      "main": [
+        [
+          {
+            "node": "歯磨き日を記録",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "global": {
+      "lastBrushedAt": 1781913600
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "835b9bcc-bf2c-4088-89fa-0475576562c1",
+  "activeVersionId": "835b9bcc-bf2c-4088-89fa-0475576562c1",
+  "versionCounter": 36,
+  "triggerCount": 2,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-15T16:55:42.404Z",
+      "createdAt": "2026-05-15T16:55:42.404Z",
+      "role": "workflow:owner",
+      "workflowId": "mLkGOALRzSkN7Esi",
+      "projectId": "yHsQmZORZPbcy5z9",
+      "project": {
+        "updatedAt": "2026-03-18T11:12:41.262Z",
+        "createdAt": "2026-03-16T17:57:23.506Z",
+        "id": "yHsQmZORZPbcy5z9",
+        "name": "Takeshi KOMIYA <i.tkomiya@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1c19844f-d045-4284-87f7-cece9750f135"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 835b9bcc",
+    "description": ""
+  }
+}

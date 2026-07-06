@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-08T07:00:58.812Z",
+  "updatedAt": "2026-07-06T07:42:57.382Z",
   "createdAt": "2026-03-31T17:30:35.534Z",
   "id": "rIXH6jYyHVcvxtvA",
   "name": "リポジトリの状態チェック",
@@ -22,7 +22,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const stdout = $input.first().json.stdout;\nconst repos = JSON.parse(stdout);\n\nif (repos.length === 0) {\n  return [];\n}\n\nconst lines = repos.map(repo => {\n  const problems = [];\n\n  if (repo.pullRequests && repo.pullRequests.length > 0) {\n    for (const pr of repo.pullRequests) {\n      problems.push(`    • <${pr.url}|${pr.title}>`);\n    }\n  }\n  if (repo.noActionlint) {\n    problems.push(`• actionlint が導入されていません`);\n  }\n  if (repo.noDependabot) {\n    problems.push(`• dependabot が導入されていません`);\n  }\n  if (repo.noDependabotCooldown) {\n    problems.push(`• dependabot に cooldown が設定されていません`);\n  }\n  if (repo.outdatedLanguages) {\n    for (const lang of repo.outdatedLanguages) {\n      problems.push(`• 利用している ${lang} バージョンが古い可能性があります `);\n    }\n  }\n\n  return `*<${repo.url}|${repo.name}>*\\n${problems.join('\\n')}`;\n});\n\nreturn [{ json: { text: lines.join('\\n\\n') } }];"
+        "jsCode": "const stdout = $input.first().json.stdout;\nconst repos = JSON.parse(stdout);\n\nif (repos.length === 0) {\n  return [];\n}\n\nconst lines = repos.map(repo => {\n  const problems = [];\n\n  if (repo.pullRequests && repo.pullRequests.length > 0) {\n    for (const pr of repo.pullRequests) {\n      problems.push(`    • <${pr.url}|${pr.title}>`);\n    }\n  }\n  if (repo.noActionlint) {\n    problems.push(`• actionlint が導入されていません`);\n  }\n  if (repo.noDependabot) {\n    problems.push(`• dependabot が導入されていません`);\n  }\n  if (repo.noDependabotCooldown) {\n    problems.push(`• dependabot に cooldown が設定されていません`);\n  }\n  if (repo.noPackageCooldown) {\n    problems.push(`• パッケージマネージャに cooldown が設定されていません`);\n  }\n  if (repo.outdatedLanguages) {\n    for (const lang of repo.outdatedLanguages) {\n      problems.push(`• 利用している ${lang} バージョンが古い可能性があります `);\n    }\n  }\n\n  return `*<${repo.url}|${repo.name}>*\\n${problems.join('\\n')}`;\n});\n\nreturn [{ json: { text: lines.join('\\n\\n') } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -346,9 +346,9 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "e2ba4539-e01b-4790-8b83-2255514ac0e3",
-  "activeVersionId": "17a79f81-a91a-452a-b1c4-b245584c1958",
-  "versionCounter": 312,
+  "versionId": "00d9ca47-ba7f-4b0a-b0e5-e0c25def07c7",
+  "activeVersionId": "00d9ca47-ba7f-4b0a-b0e5-e0c25def07c7",
+  "versionCounter": 320,
   "triggerCount": 3,
   "tags": [],
   "shared": [
@@ -371,7 +371,7 @@
     }
   ],
   "versionMetadata": {
-    "name": null,
-    "description": null
+    "name": "Version 00d9ca47",
+    "description": ""
   }
 }

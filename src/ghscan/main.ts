@@ -14,6 +14,7 @@ export interface ScanResult {
   noActionlint: boolean;
   noDependabot: boolean;
   noDependabotCooldown: boolean;
+  noPackageCooldown: boolean;
 }
 
 export interface RunOptions {
@@ -82,6 +83,7 @@ export function toScanResult(repo: Repository, latestVersions: ReadonlyMap<strin
     noActionlint: repo.noActionlint,
     noDependabot: repo.noDependabot,
     noDependabotCooldown: repo.noDependabotCooldown,
+    noPackageCooldown: repo.noPackageCooldown,
   };
 }
 
@@ -94,7 +96,8 @@ export function filterScanResults(results: readonly ScanResult[]): ScanResult[] 
       result.outdatedLanguages.length > 0 ||
       result.noActionlint ||
       result.noDependabot ||
-      result.noDependabotCooldown,
+      result.noDependabotCooldown ||
+      result.noPackageCooldown,
   );
 }
 

@@ -8,8 +8,12 @@ vi.mock("@/github/workflowParser.js", () => ({
 vi.mock("@/github/dependabotParser.js", () => ({
   analyzeDependabot: vi.fn().mockResolvedValue({ noDependabot: false, noDependabotCooldown: false }),
 }));
+vi.mock("@/github/packageCooldownParser.js", () => ({
+  analyzePackageCooldown: vi.fn().mockResolvedValue({ noPackageCooldown: false }),
+}));
 
 import { analyzeDependabot } from "@/github/dependabotParser.js";
+import { analyzePackageCooldown } from "@/github/packageCooldownParser.js";
 import { analyzeWorkflows } from "@/github/workflowParser.js";
 
 const NOW = Date.now();
@@ -95,6 +99,7 @@ describe("fetchRepositories", () => {
       noActionlint: false,
       noDependabot: false,
       noDependabotCooldown: false,
+      noPackageCooldown: false,
     });
     expect(result[1]?.pullRequests).toEqual([
       { title: "Only PR", url: "https://github.com/testuser/repo2/pull/1", labels: [] },
@@ -184,6 +189,17 @@ describe("fetchRepositories", () => {
     expect(result[0]?.noDependabot).toBe(false);
     expect(result[0]?.noDependabotCooldown).toBe(true);
     expect(analyzeDependabot).toHaveBeenCalledWith(client, "testuser/repo1");
+  });
+
+  it("passes package cooldown analysis results to the repository", async () => {
+    vi.mocked(analyzePackageCooldown).mockResolvedValueOnce({ noPackageCooldown: true });
+
+    const repos = [fakeRepo({ name: "repo1" })];
+    const client = buildClient({ repos });
+
+    const result = await fetchRepositories(client);
+    expect(result[0]?.noPackageCooldown).toBe(true);
+    expect(analyzePackageCooldown).toHaveBeenCalledWith(client, "testuser/repo1");
   });
 
   it("includes PR labels in the result", async () => {

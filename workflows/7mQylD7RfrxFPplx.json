@@ -1,0 +1,234 @@
+{
+  "updatedAt": "2026-05-19T18:57:27.443Z",
+  "createdAt": "2026-05-15T17:05:49.670Z",
+  "id": "7mQylD7RfrxFPplx",
+  "name": "エアロバイクチェッカー",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 21
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        192
+      ],
+      "id": "be7f6a85-ddb7-47a7-a71d-b9a312851336",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bike",
+        "options": {
+          "noResponseBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c10f4254-9e62-47aa-9ff4-38e929d55096",
+      "name": "/bike on Slack",
+      "webhookId": "6f4f2e2b-ac4b-41f9-8813-0bc7740fddb9"
+    },
+    {
+      "parameters": {
+        "jsCode": "function getTodayTimestamp() {\n  const now = new Date();\n  // 28時までをその日として扱う\n  now.setHours(now.getHours() - 4);\n  // その日の0時に丸める\n  now.setHours(0, 0, 0, 0);\n  return Math.floor(now.getTime() / 1000);\n}\n\nconst data = $getWorkflowStaticData('global');\ndata.lastRodeAt = getTodayTimestamp();\n\nreturn [{ json: { code: 200 }}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "a17d6471-7e22-4c89-b792-0f1c4b9edde0",
+      "name": "トレーニング日を記録"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#workflow",
+          "mode": "name"
+        },
+        "text": "トレーニングをしました",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": ":bike:"
+            }
+          },
+          "sendAsUser": "エアロバイク"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "79da636d-aa9f-4d37-86ac-8677808c36b4",
+      "name": "トレーニング通知",
+      "webhookId": "fa3ff154-d2c5-4460-8d7b-f0cf46cab7ac",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function getTimestamp(daysAgo) {\n  const now = new Date();\n  now.setDate(now.getDate() - daysAgo);\n  now.setHours(0, 0, 0, 0);\n  return Math.floor(now.getTime() / 1000);\n}\n\nconst data = $getWorkflowStaticData('global');\nif (data.lastRodeAt <= getTimestamp(7)) {\n  return [{ json: { code: 200 }}];  \n} else {\n  return [];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        192
+      ],
+      "id": "556f6f80-7213-4290-afb0-b2ba965c71ae",
+      "name": "最後に乗ってから7日過ぎた?"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#workflow",
+          "mode": "name"
+        },
+        "text": "そろそろエアロバイクに乗りましょう",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": ":bike:"
+            }
+          },
+          "sendAsUser": "エアロバイク"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        416,
+        192
+      ],
+      "id": "9adcc215-5174-41ab-9990-23db0b771676",
+      "name": "要トレーニング通知",
+      "webhookId": "eadee3f4-dcd7-4c69-a930-938ae5cdd148",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "最後に乗ってから7日過ぎた?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/bike on Slack": {
+      "main": [
+        [
+          {
+            "node": "トレーニング日を記録",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "トレーニング日を記録": {
+      "main": [
+        [
+          {
+            "node": "トレーニング通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "最後に乗ってから7日過ぎた?": {
+      "main": [
+        [
+          {
+            "node": "要トレーニング通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    },
+    "global": {
+      "lastRodeAt": 1780099200
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "f212756d-455e-46b9-83c5-ce7b5c83cde4",
+  "activeVersionId": "f212756d-455e-46b9-83c5-ce7b5c83cde4",
+  "versionCounter": 33,
+  "triggerCount": 2,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-15T17:05:49.673Z",
+      "createdAt": "2026-05-15T17:05:49.673Z",
+      "role": "workflow:owner",
+      "workflowId": "7mQylD7RfrxFPplx",
+      "projectId": "yHsQmZORZPbcy5z9",
+      "project": {
+        "updatedAt": "2026-03-18T11:12:41.262Z",
+        "createdAt": "2026-03-16T17:57:23.506Z",
+        "id": "yHsQmZORZPbcy5z9",
+        "name": "Takeshi KOMIYA <i.tkomiya@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1c19844f-d045-4284-87f7-cece9750f135"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version f212756d",
+    "description": ""
+  }
+}

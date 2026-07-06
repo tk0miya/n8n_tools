@@ -1,0 +1,236 @@
+{
+  "updatedAt": "2026-07-06T07:54:52.708Z",
+  "createdAt": "2026-05-15T16:38:17.956Z",
+  "id": "szk254OdTmIachQN",
+  "name": "お風呂掃除チェッカー",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "furowash",
+        "options": {
+          "noResponseBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ab48a5ff-67e6-4caa-889b-c51c72644e59",
+      "name": "/furowash on Slack",
+      "webhookId": "6f4f2e2b-ac4b-41f9-8813-0bc7740fddb9"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 21
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        192
+      ],
+      "id": "64ea74ec-27a9-4ac4-b39e-73cedac1c951",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#random",
+          "mode": "name"
+        },
+        "text": "お風呂を洗いました",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": ":bathtub:"
+            }
+          },
+          "sendAsUser": "おふろ"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "a9b80e13-1199-4de2-9213-a8c99cffbd7e",
+      "name": "お風呂掃除通知",
+      "webhookId": "fa3ff154-d2c5-4460-8d7b-f0cf46cab7ac",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function getTodayTimestamp() {\n  const now = new Date();\n  // 28時までをその日として扱う\n  now.setHours(now.getHours() - 4);\n  // その日の0時に丸める\n  now.setHours(0, 0, 0, 0);\n  return Math.floor(now.getTime() / 1000);\n}\n\nconst data = $getWorkflowStaticData('global');\ndata.lastWashedAt = getTodayTimestamp();\n\nreturn [{ json: { code: 200 }}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "53c6e8b3-18ff-4fdc-b83a-a5a00b7a28a2",
+      "name": "お風呂掃除日を記録"
+    },
+    {
+      "parameters": {
+        "jsCode": "function getTimestamp(daysAgo) {\n  const now = new Date();\n  now.setDate(now.getDate() - daysAgo);\n  now.setHours(0, 0, 0, 0);\n  return Math.floor(now.getTime() / 1000);\n}\n\nconst data = $getWorkflowStaticData('global');\nif (data.lastWashedAt <= getTimestamp(2)) {\n  return [{ json: { code: 200 }}];  \n} else {\n  return [];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        192
+      ],
+      "id": "d32f92f2-3fcb-4565-9929-1b641c311d90",
+      "name": "掃除してから2日過ぎた?"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#random",
+          "mode": "name"
+        },
+        "text": "最後にお風呂を洗ってから 2日以上経ちました",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "emoji",
+              "icon_emoji": ":bathtub:"
+            }
+          },
+          "sendAsUser": "おふろ"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        416,
+        192
+      ],
+      "id": "2f29a128-6dda-4387-b0ef-2e5846bccb5e",
+      "name": "要掃除通知",
+      "webhookId": "eadee3f4-dcd7-4c69-a930-938ae5cdd148",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "/furowash on Slack": {
+      "main": [
+        [
+          {
+            "node": "お風呂掃除日を記録",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "掃除してから2日過ぎた?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "お風呂掃除日を記録": {
+      "main": [
+        [
+          {
+            "node": "お風呂掃除通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "掃除してから2日過ぎた?": {
+      "main": [
+        [
+          {
+            "node": "要掃除通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "global": {
+      "lastWashedAt": 1781913600
+    },
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "24ae0143-c9fc-4fbd-8b3c-5cbe4c031123",
+  "activeVersionId": "24ae0143-c9fc-4fbd-8b3c-5cbe4c031123",
+  "versionCounter": 141,
+  "triggerCount": 2,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-15T16:38:17.959Z",
+      "createdAt": "2026-05-15T16:38:17.959Z",
+      "role": "workflow:owner",
+      "workflowId": "szk254OdTmIachQN",
+      "projectId": "yHsQmZORZPbcy5z9",
+      "project": {
+        "updatedAt": "2026-03-18T11:12:41.262Z",
+        "createdAt": "2026-03-16T17:57:23.506Z",
+        "id": "yHsQmZORZPbcy5z9",
+        "name": "Takeshi KOMIYA <i.tkomiya@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1c19844f-d045-4284-87f7-cece9750f135"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 24ae0143",
+    "description": ""
+  }
+}

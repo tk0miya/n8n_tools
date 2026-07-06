@@ -12,4 +12,5 @@ export interface Repository {
   noActionlint: boolean;
   noDependabot: boolean;
   noDependabotCooldown: boolean;
+  noPackageCooldown: boolean;
 }
