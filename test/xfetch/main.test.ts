@@ -1,5 +1,5 @@
 import { aroundEach, describe, expect, it } from "vitest";
-import type { AccountRunResult, PostEntry, ProcessedAccount, RunOptions } from "@/xfetch/main.js";
+import type { AccountRunResult, PostEntry, ProcessedAccount, RunOptions } from "#xfetch/main.js";
 import {
   aggregateResults,
   buildPostEntry,
@@ -12,10 +12,10 @@ import {
   requireBearerToken,
   stripTrailingMediaUrl,
   toErrorEntry,
-} from "@/xfetch/main.js";
-import type { XfetchState } from "@/xfetch/state.js";
-import { emptyState, STATE_VERSION } from "@/xfetch/state.js";
-import type { FetchUserPostsOptions, XClientApi, XPost, XUser } from "@/xfetch/xClient.js";
+} from "#xfetch/main.js";
+import type { XfetchState } from "#xfetch/state.js";
+import { emptyState, STATE_VERSION } from "#xfetch/state.js";
+import type { FetchUserPostsOptions, XClientApi, XPost, XUser } from "#xfetch/xClient.js";
 
 // ── parseArgs ────────────────────────────────────────────────
 

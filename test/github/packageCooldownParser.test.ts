@@ -1,6 +1,6 @@
 import dedent from "dedent";
 import { describe, expect, it } from "vitest";
-import { analyzeCooldownSources } from "@/github/packageCooldownParser.js";
+import { analyzeCooldownSources } from "#github/packageCooldownParser.js";
 
 describe("analyzeCooldownSources", () => {
   it("passes when no manifest is present", () => {

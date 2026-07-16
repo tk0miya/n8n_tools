@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAllAudioUrls } from "@/ghome/googleTts.js";
+import { getAllAudioUrls } from "#ghome/googleTts.js";
 
 describe("getAllAudioUrls", () => {
   it("returns a single URL for short text", () => {

@@ -1,7 +1,7 @@
 import { RequestError } from "@octokit/request-error";
 import dedent from "dedent";
 import { describe, expect, it, vi } from "vitest";
-import { analyzeDependabotFile, fetchDependabotFile } from "@/github/dependabotParser.js";
+import { analyzeDependabotFile, fetchDependabotFile } from "#github/dependabotParser.js";
 
 function encode(content: string): string {
   return Buffer.from(content).toString("base64");

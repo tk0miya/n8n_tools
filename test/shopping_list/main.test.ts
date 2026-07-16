@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { GasClientApi, ShoppingItem, UpdateRequest, UpdateResult } from "@/shopping_list/gas.js";
+import type { GasClientApi, ShoppingItem, UpdateRequest, UpdateResult } from "#shopping_list/gas.js";
 import {
   extractTextFromSlackEvents,
   parseArgs,
@@ -7,7 +7,7 @@ import {
   runPurge,
   runUpdate,
   toUpdateRequests,
-} from "@/shopping_list/main.js";
+} from "#shopping_list/main.js";
 
 function fakeClient(overrides: Partial<GasClientApi> = {}): GasClientApi {
   return {

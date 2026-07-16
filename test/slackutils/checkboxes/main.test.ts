@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCheckboxPayload } from "@/slackutils/checkboxes/main.js";
+import { parseCheckboxPayload } from "#slackutils/checkboxes/main.js";
 
 describe("parseCheckboxPayload", () => {
   it("returns an empty map for an empty payload", () => {

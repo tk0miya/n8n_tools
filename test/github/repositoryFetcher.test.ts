@@ -1,20 +1,20 @@
 import { RequestError } from "@octokit/request-error";
 import { describe, expect, it, vi } from "vitest";
-import { fetchRepositories, isActiveRepo } from "@/github/repositoryFetcher.js";
+import { fetchRepositories, isActiveRepo } from "#github/repositoryFetcher.js";
 
-vi.mock("@/github/workflowParser.js", () => ({
+vi.mock("#github/workflowParser.js", () => ({
   analyzeWorkflows: vi.fn().mockResolvedValue({ hasWorkflows: true, languageVersions: {}, noActionlint: false }),
 }));
-vi.mock("@/github/dependabotParser.js", () => ({
+vi.mock("#github/dependabotParser.js", () => ({
   analyzeDependabot: vi.fn().mockResolvedValue({ noDependabot: false, noDependabotCooldown: false }),
 }));
-vi.mock("@/github/packageCooldownParser.js", () => ({
+vi.mock("#github/packageCooldownParser.js", () => ({
   analyzePackageCooldown: vi.fn().mockResolvedValue({ noPackageCooldown: false }),
 }));
 
-import { analyzeDependabot } from "@/github/dependabotParser.js";
-import { analyzePackageCooldown } from "@/github/packageCooldownParser.js";
-import { analyzeWorkflows } from "@/github/workflowParser.js";
+import { analyzeDependabot } from "#github/dependabotParser.js";
+import { analyzePackageCooldown } from "#github/packageCooldownParser.js";
+import { analyzeWorkflows } from "#github/workflowParser.js";
 
 const NOW = Date.now();
 const MONTHS = (n: number) => NOW - n * 30 * 24 * 3600 * 1000;

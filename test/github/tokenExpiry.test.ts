@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseExpirationHeader } from "@/github/tokenExpiry.js";
+import { parseExpirationHeader } from "#github/tokenExpiry.js";
 
 // ── parseExpirationHeader ─────────────────────────────────
 

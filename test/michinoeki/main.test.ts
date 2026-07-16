@@ -6,7 +6,7 @@ import {
   MAX_SEEN_URLS,
   parseArgs,
   rotateSeenUrls,
-} from "@/michinoeki/main.js";
+} from "#michinoeki/main.js";
 
 // ── parseArgs ────────────────────────────────────────────────
 
