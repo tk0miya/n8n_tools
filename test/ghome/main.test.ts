@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { resolveDevice } from "@/ghome/main.js";
+import { resolveDevice } from "#ghome/main.js";
 
 describe("resolveDevice", () => {
   it("returns device from --ip", () => {

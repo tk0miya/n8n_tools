@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, aroundEach, beforeEach, describe, expect, it } from "vitest";
-import type { XfetchState } from "@/xfetch/state.js";
+import type { XfetchState } from "#xfetch/state.js";
 import {
   emptyState,
   getAccountState,
@@ -11,7 +11,7 @@ import {
   resolveStatePath,
   STATE_VERSION,
   saveState,
-} from "@/xfetch/state.js";
+} from "#xfetch/state.js";
 
 describe("resolveStatePath", () => {
   it("leaves absolute paths alone", () => {

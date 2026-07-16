@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitItems, stripMentions } from "@/shopping_list/mention.js";
+import { splitItems, stripMentions } from "#shopping_list/mention.js";
 
 describe("stripMentions", () => {
   it("removes a single user mention and trims", () => {

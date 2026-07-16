@@ -1,5 +1,5 @@
 import { aroundEach, describe, expect, it } from "vitest";
-import { extractArticles, filterNewArticles, MAX_SEEN_URLS, parseArgs, rotateSeenUrls } from "@/trafficnews/main.js";
+import { extractArticles, filterNewArticles, MAX_SEEN_URLS, parseArgs, rotateSeenUrls } from "#trafficnews/main.js";
 
 // ── parseArgs ────────────────────────────────────────────────
 

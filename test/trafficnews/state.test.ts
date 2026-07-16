@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, aroundEach, beforeEach, describe, expect, it } from "vitest";
-import type { TrafficNewsState } from "@/trafficnews/state.js";
+import type { TrafficNewsState } from "#trafficnews/state.js";
 import {
   emptyState,
   getDefaultStatePath,
@@ -10,7 +10,7 @@ import {
   resolveStatePath,
   STATE_VERSION,
   saveState,
-} from "@/trafficnews/state.js";
+} from "#trafficnews/state.js";
 
 describe("resolveStatePath", () => {
   it("leaves absolute paths alone", () => {

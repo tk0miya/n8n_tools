@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { ScanResult } from "@/ghscan/main.js";
+import type { ScanResult } from "#ghscan/main.js";
 import {
   detectOutdatedLanguages,
   filterScanResults,
   parseArgs,
   parseMinorVersion,
   toScanResult,
-} from "@/ghscan/main.js";
-import type { Repository } from "@/github/repository.js";
+} from "#ghscan/main.js";
+import type { Repository } from "#github/repository.js";
 
 // ── Helpers ─────────────────────────────────────────────────
 

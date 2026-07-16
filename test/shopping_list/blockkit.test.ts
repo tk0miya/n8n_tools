@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildBlocks } from "@/shopping_list/blockkit.js";
-import type { ShoppingItem } from "@/shopping_list/gas.js";
+import { buildBlocks } from "#shopping_list/blockkit.js";
+import type { ShoppingItem } from "#shopping_list/gas.js";
 
 function item(id: string, name: string): ShoppingItem {
   return { id, items: name, disabled: false };
