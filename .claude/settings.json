@@ -5,7 +5,8 @@
       "WebFetch(domain:npmjs.com)",
       "WebFetch(domain:registry.npmjs.org)",
       "Bash(git:*)",
-      "Bash(gh:*)"
+      "Bash(gh:*)",
+      "RemoteTrigger"
     ]
   },
   "hooks": {
