@@ -14,18 +14,8 @@ cd "$CLAUDE_PROJECT_DIR" || exit 1
 
 echo "Running pre-commit checks..." >&2
 
-if ! npm run lint >&2; then
-    echo "Error: lint failed" >&2
-    exit 2
-fi
-
-if ! npm run typecheck >&2; then
-    echo "Error: typecheck failed" >&2
-    exit 2
-fi
-
-if ! npm test >&2; then
-    echo "Error: tests failed" >&2
+if ! npm run ci >&2; then
+    echo "Error: npm run ci failed" >&2
     exit 2
 fi
 
