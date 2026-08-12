@@ -27,7 +27,7 @@
     "@types/dedent": "^0.7.2",
     "@types/node": "^24.13.3",
     "dedent": "^1.7.2",
-    "playwright": "^1.62.0",
+    "playwright": "^1.62.1",
     "tsx": "^4.23.6",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
