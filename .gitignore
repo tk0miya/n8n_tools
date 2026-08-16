@@ -9,3 +9,4 @@
 /gas/**/build/
 /gas/node_modules/
 /node_modules/
+/var/

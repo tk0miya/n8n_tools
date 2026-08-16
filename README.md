@@ -21,6 +21,21 @@ cp .env.example .env
 | `TRAFFICNEWS_STATE_FILE` | trafficnews のステートファイルパス |
 | `MICHINOEKI_STATE_FILE` | michinoeki のステートファイルパス |
 
+ステートファイルは通知済みの項目を記録するものです。コンテナの再作成で消えない永続パス (`/files/n8n_tools/var/` 配下など) を指定してください。ステートを見失うと、michinoeki は取得済みの項目をすべて「新着」として通知し直します。xfetch と trafficnews は現状を記録するだけで通知しません (trafficnews については次節を参照)。
+
+### trafficnews のステート初期化
+
+`src/trafficnews/cli.ts` はステートが空の場合、通知を出さずにその時点の記事一覧を記録します (シード)。初回実行のほか、ステートを失ったときもここに入るため、1 ページ分の記事が一度に通知されることはありません。裏を返すと、失った回に未通知だった記事は通知されないまま既読扱いになります (次回以降の通知は通常どおり再開します)。
+
+抽出ロジックを変更した直後など、明示的に record-only 実行したいときは `--seed` を使います。更新すべきなのは n8n が読むステートなので、ワークフローの Execute Command ノードと同じく n8n コンテナ内の `/files/n8n_tools` で実行してください。
+
+```bash
+# compose.yaml を置いているディレクトリ (Synology では /volume1/docker/n8n) で実行する
+docker compose exec n8n sh -c "cd /files/n8n_tools && npx tsx src/trafficnews/cli.ts --seed"
+```
+
+記事一覧を取得できなかった場合は空の結果を返さずに異常終了します。ページ構成が変わると n8n の実行がエラーになるので、抽出ロジックを直したうえで上記の再シードを行ってください。
+
 ### Synology NAS + Docker + n8n での動作
 
 Synology NAS 上の Docker コンテナ (n8n) からファイルを書き出すには、ホスト側のディレクトリに適切なパーミッションを設定する必要があります。
@@ -36,7 +51,7 @@ synoacltool -del workflows
 chmod -R 770 var workflows
 
 # グループを n8n コンテナの GID (1000) に変更する
-sudo chgrp -R 1000 var workflow
+sudo chgrp -R 1000 var workflows
 ```
 
 ## Playwright サイドカー構成
