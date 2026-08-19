@@ -20,7 +20,16 @@
       "types": "all"
     },
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "suspicious": {
+        // Off until Biome's type inference stops reporting guards that are
+        // actually required. Deleting a flagged guard produces a null
+        // dereference at runtime, so the rule cannot be acted on as it stands.
+        // https://github.com/biomejs/biome/issues/11360 - useRef(...).current
+        // https://github.com/biomejs/biome/issues/11278 - RegExp.exec()
+        // https://github.com/biomejs/biome/issues/10781 - optional chaining
+        "noUnnecessaryConditions": "off"
+      }
     }
   },
   "javascript": {
