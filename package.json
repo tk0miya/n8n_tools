@@ -23,7 +23,7 @@
     "protobufjs": "^7.5.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.8",
+    "@biomejs/biome": "^2.5.9",
     "@types/dedent": "^0.7.2",
     "@types/node": "^24.13.3",
     "dedent": "^1.7.2",
