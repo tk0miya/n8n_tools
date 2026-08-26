@@ -6,7 +6,7 @@
     "build:shopping_list": "tsc -p shopping_list/tsconfig.json && cp shopping_list/src/appsscript.json shopping_list/build/"
   },
   "devDependencies": {
-    "@google/clasp": "^3.3.0",
+    "@google/clasp": "^3.4.0",
     "@types/google-apps-script": "^2.0.8",
     "typescript": "^6.0.3"
   }
