@@ -4,7 +4,7 @@
   "id": "h2I7RMVeZxBTbnj5",
   "name": "乗りものニュース",
   "description": null,
-  "active": true,
+  "active": false,
   "isArchived": false,
   "nodes": [
     {
@@ -138,8 +138,8 @@
   },
   "pinData": {},
   "versionId": "a044ce68-d930-4a57-80cc-4ab84e9b1566",
-  "activeVersionId": "6233c2cb-564e-4b33-9611-293aabe97dcc",
-  "versionCounter": 63,
+  "activeVersionId": null,
+  "versionCounter": 64,
   "triggerCount": 1,
   "tags": [],
   "shared": [

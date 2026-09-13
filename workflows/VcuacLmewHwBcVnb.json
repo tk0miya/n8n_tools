@@ -1,0 +1,135 @@
+{
+  "updatedAt": "2026-08-22T09:43:28.633Z",
+  "createdAt": "2026-08-22T04:42:30.014Z",
+  "id": "VcuacLmewHwBcVnb",
+  "name": "Swarm check-in",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn {\n  checkin: JSON.parse(body.checkin),\n  user: JSON.parse(body.user)\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9d2aff81-0908-4d30-84f2-a2a640e49888",
+      "name": "チェックインデータの加工"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "swarm/checkin",
+        "options": {
+          "responseCode": {
+            "values": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "44dda456-ea52-4aa1-8ec2-7a484a258726",
+      "name": "Swarm チェックイン",
+      "webhookId": "de5bdda1-43ef-4040-964d-3208c4345a98"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#_test",
+          "mode": "name"
+        },
+        "text": "=📍 *{{ $json.checkin.venue.name }}* にチェックインしました！\n\n• *場所:* {{ $json.checkin.venue.location.address || '住所情報なし' }} ({{ $json.checkin.venue.location.city }})\n• *カテゴリ:* {{ $json.checkin.venue.categories[0].name }}\n• *リンク:* {{ $json.checkin.canonicalUrl }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "sendAsUser": "Swarm"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "6933efa6-b8a1-43d6-930a-1a5b94fffe58",
+      "name": "slack に通知",
+      "webhookId": "2d113e39-9211-484a-90ae-13a9ab816df7",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "チェックインデータの加工": {
+      "main": [
+        [
+          {
+            "node": "slack に通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Swarm チェックイン": {
+      "main": [
+        [
+          {
+            "node": "チェックインデータの加工",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "9a2deac9-0a2a-4909-a27f-c8e074f6710e",
+  "activeVersionId": "9a2deac9-0a2a-4909-a27f-c8e074f6710e",
+  "versionCounter": 43,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-08-22T04:42:30.034Z",
+      "createdAt": "2026-08-22T04:42:30.034Z",
+      "role": "workflow:owner",
+      "workflowId": "VcuacLmewHwBcVnb",
+      "projectId": "yHsQmZORZPbcy5z9",
+      "project": {
+        "updatedAt": "2026-03-18T11:12:41.262Z",
+        "createdAt": "2026-03-16T17:57:23.506Z",
+        "id": "yHsQmZORZPbcy5z9",
+        "name": "Takeshi KOMIYA <i.tkomiya@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1c19844f-d045-4284-87f7-cece9750f135"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version 9a2deac9",
+    "description": ""
+  }
+}
