@@ -54,6 +54,18 @@ export interface FetchUserPostsFailure {
 
 export type FetchUserPostsResult = FetchUserPostsSuccess | FetchUserPostsFailure;
 
+export interface LookupUsersSuccess {
+  ok: true;
+  found: Map<string, string>; // key = lowercase username, value = user id
+}
+
+export interface LookupUsersFailure {
+  ok: false;
+  error: XError;
+}
+
+export type LookupUsersResult = LookupUsersSuccess | LookupUsersFailure;
+
 interface RawUser {
   id: string;
   username: string;
@@ -195,14 +207,13 @@ interface FetchOnePageParams {
 export class XClient {
   constructor(private readonly bearerToken: string) {}
 
-  /** Returns a Map (key = lowercase username, value = user id), or null when the API call failed. */
-  async lookupUsers(usernames: readonly string[]): Promise<Map<string, string> | null> {
+  async lookupUsers(usernames: readonly string[]): Promise<LookupUsersResult> {
     const unique = Array.from(new Set(usernames.map((u) => u.toLowerCase()))).filter((u) => u.length > 0);
     if (unique.length === 0) {
-      return new Map();
+      return { ok: true, found: new Map() };
     }
 
-    const users = new Map<string, string>();
+    const found = new Map<string, string>();
 
     for (let i = 0; i < unique.length; i += USER_LOOKUP_BATCH_SIZE) {
       const batch = unique.slice(i, i + USER_LOOKUP_BATCH_SIZE);
@@ -213,27 +224,34 @@ export class XClient {
       let response: Response;
       try {
         response = await fetch(url, { headers: this.buildHeaders() });
-      } catch {
-        return null;
+      } catch (error) {
+        return {
+          ok: false,
+          error: { code: "fetch_failed", message: `network error: ${(error as Error).message}` },
+        };
       }
 
       if (!response.ok) {
-        return null;
+        const text = await safeReadText(response);
+        return { ok: false, error: classifyHttpError(response.status, response.headers, text) };
       }
 
       let body: RawUsersResponse;
       try {
         body = (await response.json()) as RawUsersResponse;
-      } catch {
-        return null;
+      } catch (error) {
+        return {
+          ok: false,
+          error: { code: "fetch_failed", message: `invalid JSON from /users/by: ${(error as Error).message}` },
+        };
       }
 
       for (const user of body.data ?? []) {
-        users.set(user.username.toLowerCase(), user.id);
+        found.set(user.username.toLowerCase(), user.id);
       }
     }
 
-    return users;
+    return { ok: true, found };
   }
 
   async fetchUserPosts(userId: string, options: FetchUserPostsOptions = {}): Promise<FetchUserPostsResult> {

@@ -412,7 +412,7 @@ describe("toErrorEntry", () => {
 
 function makeClient(fetchImpl: (userId: string, opts?: FetchUserPostsOptions) => Promise<XPost[]>): XClientApi {
   return {
-    lookupUsers: async () => new Map(),
+    lookupUsers: async () => ({ ok: true, found: new Map() }),
     fetchUserPosts: async (userId, opts) => {
       const posts = await fetchImpl(userId, opts);
       return { ok: true as const, posts };
@@ -499,7 +499,7 @@ describe("processAccount", () => {
 
   it("returns an error entry when fetchUserPosts fails", async () => {
     const client: XClientApi = {
-      lookupUsers: async () => new Map(),
+      lookupUsers: async () => ({ ok: true, found: new Map() }),
       fetchUserPosts: async () => ({
         ok: false,
         error: { code: "rate_limited", message: "429", resetAt: "2026-04-11T13:00:00.000Z" },
