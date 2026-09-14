@@ -349,7 +349,7 @@ export async function run(options: RunOptions): Promise<number> {
     const errors = options.usernames.map((username) => toErrorEntry(username, lookupResult.error));
     const output = buildRunOutput(options.usernames.length, 0, [], errors);
     console.log(JSON.stringify(output));
-    return 1;
+    return 0;
   }
   const users = lookupResult.found;
 
@@ -366,6 +366,5 @@ export async function run(options: RunOptions): Promise<number> {
   const nextState = mergeStateAfterRun(state, accountResults);
   await saveState(nextState, options.statePath);
 
-  const anySuccess = accountResults.some((r) => r.status !== "error");
-  return anySuccess ? 0 : 1;
+  return 0;
 }
