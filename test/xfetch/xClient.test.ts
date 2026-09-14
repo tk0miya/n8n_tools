@@ -76,8 +76,9 @@ describe("XClient.lookupUsers", () => {
     );
     const client = new XClient("token");
     const result = await client.lookupUsers(["ElonMusk"]);
-    expect(result).not.toBeNull();
-    expect(result?.get("elonmusk")).toBe("1");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unexpected error");
+    expect(result.found.get("elonmusk")).toBe("1");
 
     const calledUrl = fetchMock.mock.calls[0][0] as URL;
     expect(calledUrl.searchParams.get("usernames")).toBe("elonmusk");
@@ -94,9 +95,10 @@ describe("XClient.lookupUsers", () => {
     );
     const client = new XClient("token");
     const result = await client.lookupUsers(["exists", "ghost"]);
-    expect(result).not.toBeNull();
-    expect(result?.get("exists")).toBe("1");
-    expect(result?.has("ghost")).toBe(false);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unexpected error");
+    expect(result.found.get("exists")).toBe("1");
+    expect(result.found.has("ghost")).toBe(false);
   });
 
   it("batches usernames into chunks of 100", async () => {
@@ -111,18 +113,42 @@ describe("XClient.lookupUsers", () => {
     expect(secondUrl.searchParams.get("usernames")?.split(",").length).toBe(50);
   });
 
-  it("returns null on 401", async () => {
+  it("classifies 401 as unauthorized with the response body in the message", async () => {
     fetchMock.mockResolvedValueOnce(errorResponse(401, "unauthorized"));
     const client = new XClient("token");
     const result = await client.lookupUsers(["elonmusk"]);
-    expect(result).toBeNull();
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unexpected ok");
+    expect(result.error.code).toBe("unauthorized");
+    expect(result.error.message).toContain("unauthorized");
+  });
+
+  it("classifies 429 as rate_limited and extracts reset time", async () => {
+    fetchMock.mockResolvedValueOnce(errorResponse(429, "slow down", { "x-rate-limit-reset": "1712000000" }));
+    const client = new XClient("token");
+    const result = await client.lookupUsers(["elonmusk"]);
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unexpected ok");
+    expect(result.error.code).toBe("rate_limited");
+    expect(result.error.resetAt).toBe(new Date(1712000000 * 1000).toISOString());
+  });
+
+  it("maps network errors to fetch_failed", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+    const client = new XClient("token");
+    const result = await client.lookupUsers(["elonmusk"]);
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unexpected ok");
+    expect(result.error.code).toBe("fetch_failed");
+    expect(result.error.message).toContain("ECONNREFUSED");
   });
 
   it("returns an empty map for empty input without calling fetch", async () => {
     const client = new XClient("token");
     const result = await client.lookupUsers([]);
-    expect(result).not.toBeNull();
-    expect(result?.size).toBe(0);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unexpected error");
+    expect(result.found.size).toBe(0);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

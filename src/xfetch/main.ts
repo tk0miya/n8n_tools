@@ -344,10 +344,14 @@ export async function run(options: RunOptions): Promise<number> {
   const client = new XClient(bearerToken);
   const state = await loadState(options.statePath);
 
-  const users = await client.lookupUsers(options.usernames);
-  if (!users) {
-    throw new Error("user lookup failed");
+  const lookupResult = await client.lookupUsers(options.usernames);
+  if (!lookupResult.ok) {
+    const errors = options.usernames.map((username) => toErrorEntry(username, lookupResult.error));
+    const output = buildRunOutput(options.usernames.length, 0, [], errors);
+    console.log(JSON.stringify(output));
+    return 1;
   }
+  const users = lookupResult.found;
 
   const settled = await Promise.allSettled(
     options.usernames.map((u) =>
@@ -357,11 +361,10 @@ export async function run(options: RunOptions): Promise<number> {
   const { posts, errors, accountResults, baselineEstablishedCount } = aggregateResults(settled, options.usernames);
 
   const output = buildRunOutput(options.usernames.length, baselineEstablishedCount, posts, errors);
+  console.log(JSON.stringify(output));
 
   const nextState = mergeStateAfterRun(state, accountResults);
   await saveState(nextState, options.statePath);
-
-  console.log(JSON.stringify(output));
 
   const anySuccess = accountResults.some((r) => r.status !== "error");
   return anySuccess ? 0 : 1;
