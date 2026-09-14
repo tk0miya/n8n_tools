@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-12T19:05:41.669Z",
+  "updatedAt": "2026-07-19T05:35:39.947Z",
   "createdAt": "2026-04-12T04:53:27.712Z",
   "id": "QGM1hASLOSYHq46V",
   "name": "X チェック",
@@ -103,6 +103,90 @@
       ],
       "id": "806750d7-a344-4405-b759-ea5d44c1bea1",
       "name": "奥井亜紀チェック"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        336
+      ],
+      "id": "deb9a23a-450e-45bb-8e7f-65dea243b346",
+      "name": "2時間おきに1"
+    },
+    {
+      "parameters": {
+        "executeOnce": "={{ true }}",
+        "command": "cd /files/n8n_tools\nnpx tsx src/xfetch/cli.ts --inline-media PriPrico"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        208,
+        336
+      ],
+      "id": "56520996-fc48-424e-889f-1036fd792c91",
+      "name": "X をチェックして1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($input.first().json.stdout);\nreturn parsed.posts.map(post => ({ json: post }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        336
+      ],
+      "id": "bfded5ea-7e83-4407-a6bd-7a0e799eb3bd",
+      "name": "各ツイートを1"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#workflow",
+          "mode": "name"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "botProfile": {
+            "imageValues": {
+              "profilePhotoType": "image",
+              "icon_url": "={{ $json.author.profile_image_url }}"
+            }
+          },
+          "unfurl_links": true,
+          "sendAsUser": "={{ $json.author.name }}"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        624,
+        336
+      ],
+      "id": "05d62695-e812-4aff-8a92-93adb872f7b6",
+      "name": "Slack にポストする1",
+      "webhookId": "e38a3450-8897-468a-8021-fcb85f55612e",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
     }
   ],
   "connections": {
@@ -154,6 +238,39 @@
           }
         ]
       ]
+    },
+    "2時間おきに1": {
+      "main": [
+        [
+          {
+            "node": "X をチェックして1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "X をチェックして1": {
+      "main": [
+        [
+          {
+            "node": "各ツイートを1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "各ツイートを1": {
+      "main": [
+        [
+          {
+            "node": "Slack にポストする1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -163,7 +280,12 @@
   "staticData": {
     "node:2時間おきに": {
       "recurrenceRules": [
-        16
+        0
+      ]
+    },
+    "node:2時間おきに1": {
+      "recurrenceRules": [
+        22
       ]
     }
   },
@@ -171,10 +293,10 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "072a66eb-f356-4ba2-ac47-005d33edfa8f",
-  "activeVersionId": "072a66eb-f356-4ba2-ac47-005d33edfa8f",
-  "versionCounter": 1158,
-  "triggerCount": 1,
+  "versionId": "38e7ed79-c4fc-448b-bffa-fa0912edcfa8",
+  "activeVersionId": "38e7ed79-c4fc-448b-bffa-fa0912edcfa8",
+  "versionCounter": 1985,
+  "triggerCount": 2,
   "tags": [],
   "shared": [
     {
@@ -196,7 +318,7 @@
     }
   ],
   "versionMetadata": {
-    "name": "Version 072a66eb",
+    "name": "Version 38e7ed79",
     "description": ""
   }
 }
