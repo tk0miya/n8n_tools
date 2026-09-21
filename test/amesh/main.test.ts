@@ -5,6 +5,7 @@ import {
   buildMaskUrl,
   buildMeshUrl,
   computeMeshTimestamp,
+  computeMeshTimestamps,
   fetchImage,
   parseArgs,
   run,
@@ -35,6 +36,21 @@ describe("computeMeshTimestamp", () => {
   });
 });
 
+describe("computeMeshTimestamps", () => {
+  it("returns `count` timestamps, 5 minutes apart, oldest first, ending at computeMeshTimestamp(now)", () => {
+    const now = new Date("2026-04-11T12:07:30.000Z");
+    const timestamps = computeMeshTimestamps(now, 3);
+    expect(timestamps).toEqual(["202604112050", "202604112055", "202604112100"]);
+    expect(timestamps[timestamps.length - 1]).toBe(computeMeshTimestamp(now));
+  });
+
+  it("handles crossing midnight across the whole range", () => {
+    // latest frame is 2026-04-11 23:55 JST; 3 frames span 23:45-23:55
+    const now = new Date("2026-04-11T15:02:00.000Z");
+    expect(computeMeshTimestamps(now, 3)).toEqual(["202604112345", "202604112350", "202604112355"]);
+  });
+});
+
 // ── URL builders ─────────────────────────────────────────────
 
 describe("buildMapUrl", () => {
@@ -58,12 +74,18 @@ describe("buildMeshUrl", () => {
 // ── parseArgs ────────────────────────────────────────────────
 
 describe("parseArgs", () => {
-  it("returns the current time with no arguments", () => {
+  it("returns the current time with no arguments, animate defaulting to false", () => {
     const before = Date.now();
     const options = parseArgs(["node", "cli.js"]);
     const after = Date.now();
     expect(options.now.getTime()).toBeGreaterThanOrEqual(before);
     expect(options.now.getTime()).toBeLessThanOrEqual(after);
+    expect(options.animate).toBe(false);
+  });
+
+  it("sets animate to true when --animate is passed", () => {
+    const options = parseArgs(["node", "cli.js", "--animate"]);
+    expect(options.animate).toBe(true);
   });
 });
 
@@ -119,7 +141,7 @@ describe("run", () => {
     );
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     try {
-      const code = await run({ now: new Date("2026-04-11T12:07:30.000Z") });
+      const code = await run({ now: new Date("2026-04-11T12:07:30.000Z"), animate: false });
       expect(code).toBe(0);
       expect(requestedUrls).toEqual([
         "https://tokyo-ame.jwa.or.jp/map/map000.jpg",
@@ -144,13 +166,44 @@ describe("run", () => {
       vi.fn(async () => new Response(null, { status: 500, statusText: "Internal Server Error" })),
     );
     try {
-      await expect(run({ now: new Date() })).rejects.toThrow("HTTP 500 Internal Server Error");
+      await expect(run({ now: new Date(), animate: false })).rejects.toThrow("HTTP 500 Internal Server Error");
     } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("with animate: true, fetches map/mask once and 24 mesh frames, then prints an animated GIF", async () => {
+    const requestedUrls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        requestedUrls.push(url);
+        return new Response(ONE_PX_PNG, { status: 200 });
+      }),
+    );
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const now = new Date("2026-04-11T12:07:30.000Z");
+      const code = await run({ now, animate: true });
+      expect(code).toBe(0);
+      expect(requestedUrls[0]).toBe("https://tokyo-ame.jwa.or.jp/map/map000.jpg");
+      expect(requestedUrls[1]).toBe("https://tokyo-ame.jwa.or.jp/map/msk000.png");
+      expect(requestedUrls).toHaveLength(2 + 24);
+      expect(requestedUrls[requestedUrls.length - 1]).toBe("https://tokyo-ame.jwa.or.jp/mesh/000/202604112100.gif");
+
+      const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
+      expect(output.timestamp).toBe("202604112100");
+      expect(output.content_type).toBe("image/gif");
+      expect(typeof output.image_base64).toBe("string");
+      expect(output.image_base64.length).toBeGreaterThan(0);
+    } finally {
+      log.mockRestore();
       vi.unstubAllGlobals();
     }
   });
 });
 
-// composeImage has no dedicated unit test; its output format is exercised
-// indirectly via the `run` tests above. The `run` tests use identical bytes
-// for all three layers, so they cannot catch a regression in layer order.
+// composeImage and composeAnimation have no dedicated unit tests; their output
+// format is exercised indirectly via the `run` tests above. The `run` tests use
+// identical bytes for all layers/frames, so they cannot catch a regression in
+// layer order, frame order, or the animation's loop/delay settings.
