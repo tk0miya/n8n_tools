@@ -151,6 +151,7 @@ describe("run", () => {
 
       const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
       expect(output.timestamp).toBe("202604112100");
+      expect(output.filename).toBe("amesh_202604112100.png");
       expect(output.content_type).toBe("image/png");
       expect(typeof output.image_base64).toBe("string");
       expect(output.image_base64.length).toBeGreaterThan(0);
@@ -193,6 +194,7 @@ describe("run", () => {
 
       const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
       expect(output.timestamp).toBe("202604112100");
+      expect(output.filename).toBe("amesh_202604112100.gif");
       expect(output.content_type).toBe("image/gif");
       expect(typeof output.image_base64).toBe("string");
       expect(output.image_base64.length).toBeGreaterThan(0);

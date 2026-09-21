@@ -16,6 +16,7 @@ export interface RunOptions {
 
 export interface RunOutput {
   timestamp: string;
+  filename: string;
   content_type: "image/png" | "image/gif";
   image_base64: string;
 }
@@ -116,6 +117,7 @@ async function runSingle(now: Date): Promise<RunOutput> {
 
   return {
     timestamp,
+    filename: `amesh_${timestamp}.png`,
     content_type: "image/png",
     image_base64: composed.toString("base64"),
   };
@@ -136,8 +138,11 @@ async function runAnimated(now: Date): Promise<RunOutput> {
   const frames = await Promise.all(meshes.map((mesh) => composeImage(map, mesh, mask)));
   const animation = await composeAnimation(frames);
 
+  const timestamp = timestamps[timestamps.length - 1];
+
   return {
-    timestamp: timestamps[timestamps.length - 1],
+    timestamp,
+    filename: `amesh_${timestamp}.gif`,
     content_type: "image/gif",
     image_base64: animation.toString("base64"),
   };
