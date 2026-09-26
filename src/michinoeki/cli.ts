@@ -8,14 +8,17 @@ async function main(): Promise<void> {
     options = parseArgs(process.argv);
   } catch (error) {
     console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
-  const code = await run(options);
-  process.exit(code);
+  // Avoid process.exit(): it can truncate a large stdout write when stdout is
+  // piped, since Node may not have finished flushing the write before the
+  // process exits.
+  process.exitCode = await run(options);
 }
 
 main().catch((error) => {
   console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
+  process.exitCode = 1;
 });
