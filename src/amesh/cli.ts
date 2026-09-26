@@ -12,9 +12,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Avoid process.exit(): it can truncate large stdout writes (e.g. the
-  // base64-encoded image) when stdout is piped, since Node may not have
-  // finished flushing the write before the process exits.
+  // Avoid process.exit(): it can truncate stdout writes when stdout is piped,
+  // since Node may not have finished flushing the write before the process exits.
   process.exitCode = await run(options);
 }
 

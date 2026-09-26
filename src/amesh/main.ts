@@ -1,3 +1,5 @@
+import { rename, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { parseArgs as nodeParseArgs } from "node:util";
 import sharp from "sharp";
 
@@ -12,22 +14,34 @@ const ANIMATION_FRAME_DELAY_MS = 200;
 export interface RunOptions {
   now: Date;
   animate: boolean;
+  outputDir: string;
 }
 
 export interface RunOutput {
   timestamp: string;
-  filename: string;
   content_type: "image/png" | "image/gif";
-  image_base64: string;
+  path: string;
+}
+
+interface ComposedImage extends Omit<RunOutput, "path"> {
+  filename: string;
+  image: Buffer;
 }
 
 export function parseArgs(argv: string[]): RunOptions {
   const { values } = nodeParseArgs({
     args: argv.slice(2),
-    options: { animate: { type: "boolean", default: false } },
+    options: {
+      animate: { type: "boolean", default: false },
+      "output-dir": { type: "string", short: "d" },
+    },
     allowPositionals: false,
   });
-  return { now: new Date(), animate: values.animate ?? false };
+  const outputDir = values["output-dir"];
+  if (!outputDir) {
+    throw new Error("Usage: amesh -d <output-dir> [--animate]");
+  }
+  return { now: new Date(), animate: values.animate ?? false, outputDir };
 }
 
 function formatMeshTimestamp(date: Date): string {
@@ -104,7 +118,7 @@ export async function composeAnimation(frames: Buffer[]): Promise<Buffer> {
     .toBuffer();
 }
 
-async function runSingle(now: Date): Promise<RunOutput> {
+async function runSingle(now: Date): Promise<ComposedImage> {
   const timestamp = computeMeshTimestamp(now);
 
   const [map, mesh, mask] = await Promise.all([
@@ -117,13 +131,13 @@ async function runSingle(now: Date): Promise<RunOutput> {
 
   return {
     timestamp,
-    filename: `amesh_${timestamp}.png`,
     content_type: "image/png",
-    image_base64: composed.toString("base64"),
+    filename: "amesh.png",
+    image: composed,
   };
 }
 
-async function runAnimated(now: Date): Promise<RunOutput> {
+async function runAnimated(now: Date): Promise<ComposedImage> {
   const timestamps = computeMeshTimestamps(now, ANIMATION_FRAME_COUNT);
 
   const [map, mask] = await Promise.all([fetchImage(buildMapUrl()), fetchImage(buildMaskUrl())]);
@@ -142,14 +156,27 @@ async function runAnimated(now: Date): Promise<RunOutput> {
 
   return {
     timestamp,
-    filename: `amesh_${timestamp}.gif`,
     content_type: "image/gif",
-    image_base64: animation.toString("base64"),
+    filename: "amesh.gif",
+    image: animation,
   };
 }
 
 export async function run(options: RunOptions): Promise<number> {
-  const output = options.animate ? await runAnimated(options.now) : await runSingle(options.now);
+  const { filename, image, ...meta } = options.animate ? await runAnimated(options.now) : await runSingle(options.now);
+  const path = join(options.outputDir, filename);
+
+  // 読み手が書きかけのファイルを読まないよう、一時ファイルに書いてから置き換える。
+  const tmp = `${path}.${process.pid}.tmp`;
+  try {
+    await writeFile(tmp, image);
+    await rename(tmp, path);
+  } catch (error) {
+    await rm(tmp, { force: true });
+    throw error;
+  }
+
+  const output: RunOutput = { ...meta, path };
   console.log(JSON.stringify(output));
 
   return 0;
