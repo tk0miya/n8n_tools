@@ -1,3 +1,6 @@
+import { rename, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { parseArgs as nodeParseArgs } from "node:util";
 import sharp from "sharp";
 
@@ -12,22 +15,38 @@ const ANIMATION_FRAME_DELAY_MS = 200;
 export interface RunOptions {
   now: Date;
   animate: boolean;
+  outputPath?: string;
 }
 
-export interface RunOutput {
+interface RunOutputBase {
   timestamp: string;
   filename: string;
   content_type: "image/png" | "image/gif";
-  image_base64: string;
+}
+
+// n8n の Execute Command ノードは stdout を 1MB までしか受け取れない
+// (child_process.exec の maxBuffer 既定値)。アニメーションGIFの base64 は
+// これを超えるため、outputPath 指定時は画像をファイルに書き出してパスだけを返す。
+export type RunOutput = RunOutputBase & ({ image_base64: string } | { path: string });
+
+interface ComposedImage extends RunOutputBase {
+  image: Buffer;
 }
 
 export function parseArgs(argv: string[]): RunOptions {
   const { values } = nodeParseArgs({
     args: argv.slice(2),
-    options: { animate: { type: "boolean", default: false } },
+    options: {
+      animate: { type: "boolean", default: false },
+      "to-file": { type: "boolean", default: false },
+    },
     allowPositionals: false,
   });
-  return { now: new Date(), animate: values.animate ?? false };
+  const animate = values.animate ?? false;
+  // 画像は Slack に投稿するだけで残す必要がないため、tmpdir の固定ファイル名に
+  // 毎回上書きする(実行のたびにファイルが溜まらないようにする)。
+  const outputPath = values["to-file"] ? join(tmpdir(), animate ? "amesh.gif" : "amesh.png") : undefined;
+  return { now: new Date(), animate, outputPath };
 }
 
 function formatMeshTimestamp(date: Date): string {
@@ -104,7 +123,7 @@ export async function composeAnimation(frames: Buffer[]): Promise<Buffer> {
     .toBuffer();
 }
 
-async function runSingle(now: Date): Promise<RunOutput> {
+async function runSingle(now: Date): Promise<ComposedImage> {
   const timestamp = computeMeshTimestamp(now);
 
   const [map, mesh, mask] = await Promise.all([
@@ -119,11 +138,11 @@ async function runSingle(now: Date): Promise<RunOutput> {
     timestamp,
     filename: `amesh_${timestamp}.png`,
     content_type: "image/png",
-    image_base64: composed.toString("base64"),
+    image: composed,
   };
 }
 
-async function runAnimated(now: Date): Promise<RunOutput> {
+async function runAnimated(now: Date): Promise<ComposedImage> {
   const timestamps = computeMeshTimestamps(now, ANIMATION_FRAME_COUNT);
 
   const [map, mask] = await Promise.all([fetchImage(buildMapUrl()), fetchImage(buildMaskUrl())]);
@@ -144,12 +163,28 @@ async function runAnimated(now: Date): Promise<RunOutput> {
     timestamp,
     filename: `amesh_${timestamp}.gif`,
     content_type: "image/gif",
-    image_base64: animation.toString("base64"),
+    image: animation,
   };
 }
 
 export async function run(options: RunOptions): Promise<number> {
-  const output = options.animate ? await runAnimated(options.now) : await runSingle(options.now);
+  const { image, ...meta } = options.animate ? await runAnimated(options.now) : await runSingle(options.now);
+
+  let output: RunOutput;
+  if (options.outputPath) {
+    // 読み手が書きかけのファイルを読まないよう、一時ファイルに書いてから置き換える。
+    const tmp = `${options.outputPath}.${process.pid}.tmp`;
+    try {
+      await writeFile(tmp, image);
+      await rename(tmp, options.outputPath);
+    } catch (error) {
+      await rm(tmp, { force: true });
+      throw error;
+    }
+    output = { ...meta, path: options.outputPath };
+  } else {
+    output = { ...meta, image_base64: image.toString("base64") };
+  }
   console.log(JSON.stringify(output));
 
   return 0;

@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { RunOutput } from "#amesh/main.js";
 import {
@@ -87,6 +90,15 @@ describe("parseArgs", () => {
     const options = parseArgs(["node", "cli.js", "--animate"]);
     expect(options.animate).toBe(true);
   });
+
+  it("leaves outputPath undefined by default", () => {
+    expect(parseArgs(["node", "cli.js"]).outputPath).toBeUndefined();
+  });
+
+  it("sets outputPath to a fixed file in tmpdir with --to-file, by image type", () => {
+    expect(parseArgs(["node", "cli.js", "--to-file"]).outputPath).toBe(join(tmpdir(), "amesh.png"));
+    expect(parseArgs(["node", "cli.js", "--to-file", "--animate"]).outputPath).toBe(join(tmpdir(), "amesh.gif"));
+  });
 });
 
 // ── fetchImage ───────────────────────────────────────────────
@@ -149,7 +161,7 @@ describe("run", () => {
         "https://tokyo-ame.jwa.or.jp/map/msk000.png",
       ]);
 
-      const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
+      const output = JSON.parse(log.mock.calls[0]?.[0] as string) as Extract<RunOutput, { image_base64: string }>;
       expect(output.timestamp).toBe("202604112100");
       expect(output.filename).toBe("amesh_202604112100.png");
       expect(output.content_type).toBe("image/png");
@@ -192,13 +204,69 @@ describe("run", () => {
       expect(requestedUrls).toHaveLength(2 + 24);
       expect(requestedUrls[requestedUrls.length - 1]).toBe("https://tokyo-ame.jwa.or.jp/mesh/000/202604112100.gif");
 
-      const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
+      const output = JSON.parse(log.mock.calls[0]?.[0] as string) as Extract<RunOutput, { image_base64: string }>;
       expect(output.timestamp).toBe("202604112100");
       expect(output.filename).toBe("amesh_202604112100.gif");
       expect(output.content_type).toBe("image/gif");
       expect(typeof output.image_base64).toBe("string");
       expect(output.image_base64.length).toBeGreaterThan(0);
     } finally {
+      log.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("run with outputPath", () => {
+  it("overwrites the image at outputPath and prints its path instead of base64", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(ONE_PX_PNG, { status: 200 })),
+    );
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const baseDir = await mkdtemp(join(tmpdir(), "amesh-test-"));
+    const outputPath = join(baseDir, "amesh.gif");
+    try {
+      await writeFile(outputPath, "stale");
+      const code = await run({ now: new Date("2026-04-11T12:07:30.000Z"), animate: true, outputPath });
+      expect(code).toBe(0);
+
+      const output = JSON.parse(log.mock.calls[0]?.[0] as string) as Record<string, unknown>;
+      expect(output).toEqual({
+        timestamp: "202604112100",
+        filename: "amesh_202604112100.gif",
+        content_type: "image/gif",
+        path: outputPath,
+      });
+
+      const written = await readFile(outputPath);
+      expect(written.subarray(0, 6).toString("ascii")).toBe("GIF89a");
+      expect(await readdir(baseDir)).toEqual(["amesh.gif"]);
+    } finally {
+      await rm(baseDir, { recursive: true, force: true });
+      log.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("run with outputPath (failure)", () => {
+  it("removes the temporary file and rethrows when replacing outputPath fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(ONE_PX_PNG, { status: 200 })),
+    );
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const baseDir = await mkdtemp(join(tmpdir(), "amesh-test-"));
+    // A directory at outputPath lets the temp file be written but makes rename fail.
+    const outputPath = join(baseDir, "amesh.png");
+    try {
+      await mkdir(outputPath);
+      await expect(run({ now: new Date("2026-04-11T12:07:30.000Z"), animate: false, outputPath })).rejects.toThrow();
+      expect(await readdir(baseDir)).toEqual(["amesh.png"]);
+      expect(log).not.toHaveBeenCalled();
+    } finally {
+      await rm(baseDir, { recursive: true, force: true });
       log.mockRestore();
       vi.unstubAllGlobals();
     }
