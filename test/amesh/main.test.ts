@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { RunOutput } from "#amesh/main.js";
+import type { RunOutput } from "#amesh/main.ts";
 import {
   buildMapUrl,
   buildMaskUrl,
@@ -12,7 +12,7 @@ import {
   fetchImage,
   parseArgs,
   run,
-} from "#amesh/main.js";
+} from "#amesh/main.ts";
 
 // ── computeMeshTimestamp ─────────────────────────────────────
 

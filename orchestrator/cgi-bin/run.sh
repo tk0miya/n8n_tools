@@ -17,7 +17,7 @@ image="mcr.microsoft.com/playwright:v${pw_ver}-noble"
 result=$(timeout 600 docker run --rm \
   -v "${N8N_TOOLS_PATH}:/files/n8n_tools:ro" \
   "$image" \
-  /files/n8n_tools/node_modules/.bin/tsx /files/n8n_tools/src/playwright-runner/cli.ts 2>&1)
+  node /files/n8n_tools/src/playwright-runner/cli.ts 2>&1)
 exit_code=$?
 
 printf "Content-Type: application/json\r\n\r\n"

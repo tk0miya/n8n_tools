@@ -1,4 +1,4 @@
-import { fetchTokenExpiry } from "../github/tokenExpiry.js";
+import { fetchTokenExpiry } from "../github/tokenExpiry.ts";
 
 // ── Public API ──────────────────────────────────────────────
 

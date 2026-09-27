@@ -1,4 +1,4 @@
-import type { ShoppingItem } from "./gas.js";
+import type { ShoppingItem } from "./gas.ts";
 
 const CHUNK_SIZE = 10;
 

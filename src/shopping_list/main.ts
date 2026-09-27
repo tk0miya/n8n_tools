@@ -1,6 +1,6 @@
-import { type BlockKitBlock, buildBlocks } from "./blockkit.js";
-import { GasClient, type GasClientApi } from "./gas.js";
-import { splitItems, stripMentions } from "./mention.js";
+import { type BlockKitBlock, buildBlocks } from "./blockkit.ts";
+import { GasClient, type GasClientApi } from "./gas.ts";
+import { splitItems, stripMentions } from "./mention.ts";
 
 export type Subcommand = "dispatch" | "update" | "purge";
 

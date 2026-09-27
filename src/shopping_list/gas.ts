@@ -39,10 +39,13 @@ async function parseResponse<T>(res: Response): Promise<T | undefined> {
 }
 
 export class GasClient implements GasClientApi {
-  constructor(
-    private readonly url: string,
-    private readonly fetchImpl: typeof fetch = fetch,
-  ) {}
+  private readonly url: string;
+  private readonly fetchImpl: typeof fetch;
+
+  constructor(url: string, fetchImpl: typeof fetch = fetch) {
+    this.url = url;
+    this.fetchImpl = fetchImpl;
+  }
 
   async list(): Promise<ShoppingItem[]> {
     return (await this.get<ShoppingItem[]>("list")) ?? [];

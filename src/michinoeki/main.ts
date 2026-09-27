@@ -1,5 +1,5 @@
 import { parseArgs as nodeParseArgs } from "node:util";
-import { getDefaultStatePath, loadState, STATE_VERSION, saveState } from "./state.js";
+import { getDefaultStatePath, loadState, STATE_VERSION, saveState } from "./state.ts";
 
 const TARGET_URL = "https://www.mlit.go.jp/road/Michi-no-Eki/topics.html";
 const BASE_URL = "https://www.mlit.go.jp";

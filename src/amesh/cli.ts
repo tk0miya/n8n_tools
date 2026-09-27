@@ -1,6 +1,6 @@
 import "dotenv/config";
-import type { RunOptions } from "./main.js";
-import { parseArgs, run } from "./main.js";
+import type { RunOptions } from "./main.ts";
+import { parseArgs, run } from "./main.ts";
 
 async function main(): Promise<void> {
   let options: RunOptions;

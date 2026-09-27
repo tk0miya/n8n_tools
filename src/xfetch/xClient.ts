@@ -205,7 +205,11 @@ interface FetchOnePageParams {
 }
 
 export class XClient {
-  constructor(private readonly bearerToken: string) {}
+  private readonly bearerToken: string;
+
+  constructor(bearerToken: string) {
+    this.bearerToken = bearerToken;
+  }
 
   async lookupUsers(usernames: readonly string[]): Promise<LookupUsersResult> {
     const unique = Array.from(new Set(usernames.map((u) => u.toLowerCase()))).filter((u) => u.length > 0);

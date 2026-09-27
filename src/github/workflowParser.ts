@@ -1,7 +1,7 @@
 import { RequestError } from "@octokit/request-error";
 import type { Octokit } from "@octokit/rest";
 import * as yaml from "js-yaml";
-import { fetchFileContent } from "./content.js";
+import { fetchFileContent } from "./content.ts";
 
 const LANGUAGE_KEYS = {
   "ruby-version": "ruby",

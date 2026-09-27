@@ -1,4 +1,4 @@
-import { parseCheckboxPayload } from "./main.js";
+import { parseCheckboxPayload } from "./main.ts";
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
