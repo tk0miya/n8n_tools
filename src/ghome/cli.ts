@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { parseArgs, run } from "./main.js";
+import { parseArgs, run } from "./main.ts";
 
 run(parseArgs(process.argv))
   .then(() => {

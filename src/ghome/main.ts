@@ -1,6 +1,6 @@
 import { parseArgs as nodeParseArgs } from "node:util";
 import { Client, DefaultMediaReceiver } from "castv2-client";
-import { getAllAudioUrls } from "./googleTts.js";
+import { getAllAudioUrls } from "./googleTts.ts";
 
 export interface RunOptions {
   text?: string;

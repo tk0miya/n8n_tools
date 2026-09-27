@@ -49,9 +49,8 @@ n8n コンテナには Playwright も Docker も含まれないため、ブラ�
 n8n (HTTP Request ノード)
   └─ HTTP POST → orchestrator:8080/cgi-bin/run.sh
                    └─ docker run playwright-runner   DooD でオンデマンド起動
-                          └─ /files/n8n_tools/node_modules/.bin/tsx
-                                 /files/n8n_tools/src/playwright-runner/cli.ts
-                                 ブラウザを操作して JSON を stdout へ出力
+                          └─ node /files/n8n_tools/src/playwright-runner/cli.ts
+                               ブラウザを操作して JSON を stdout へ出力
 ```
 
 ### コンポーネント
@@ -69,7 +68,7 @@ n8n (HTTP Request ノード)
 - **カスタム Dockerfile なし**: orchestrator は `alpine:3`、playwright-runner は `mcr.microsoft.com/playwright` をそのまま使用。`docker compose pull` だけでアップストリームのアップデートを取り込める。
 - **Playwright イメージの自動バージョン追従**: `run.sh` が `node_modules/playwright/package.json` からインストール済みバージョンを読み取り、`mcr.microsoft.com/playwright:v{VERSION}-noble` を自動構築する。`npm install` で playwright を更新するだけでイメージも追従し、npm パッケージとコンテナのバージョン不整合を防ぐ。
 - **n8n 側は標準 HTTP Request ノードで十分**: orchestrator への HTTP 呼び出しに専用 CLI は不要。
-- **TypeScript で runner を記述**: n8n_tools ディレクトリごとマウントし、`node_modules/.bin/tsx` で実行。Dockerfile 不要で型安全なスクリプトが書ける。tsx のネイティブバイナリ (esbuild) はホストと同じ CPU アーキテクチャで動作するため、**ホストは Linux x86_64 であること**（Synology NAS など）。macOS/ARM からの `docker run` 経由では動作しない。
+- **TypeScript で runner を記述**: n8n_tools ディレクトリごとマウントし、Node.js の型ストリッピング機能で `.ts` を直接実行する (Node.js 24 以降で既定有効)。Dockerfile もトランスパイラも不要で型安全なスクリプトが書ける。
 
 ### セットアップ
 

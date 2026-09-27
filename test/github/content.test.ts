@@ -1,6 +1,6 @@
 import { RequestError } from "@octokit/request-error";
 import { describe, expect, it, vi } from "vitest";
-import { fetchFileContent } from "#github/content.js";
+import { fetchFileContent } from "#github/content.ts";
 
 function encode(content: string): string {
   return Buffer.from(content).toString("base64");

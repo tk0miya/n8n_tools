@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchLatestLanguageVersions } from "#github/languageVersionFetcher.js";
+import { fetchLatestLanguageVersions } from "#github/languageVersionFetcher.ts";
 
 interface ScheduleEntry {
   start?: string;

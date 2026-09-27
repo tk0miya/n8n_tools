@@ -1,9 +1,9 @@
 import { RequestError } from "@octokit/request-error";
 import type { Octokit } from "@octokit/rest";
-import { analyzeDependabot } from "./dependabotParser.js";
-import { analyzePackageCooldown } from "./packageCooldownParser.js";
-import type { PullRequest, Repository } from "./repository.js";
-import { analyzeWorkflows } from "./workflowParser.js";
+import { analyzeDependabot } from "./dependabotParser.ts";
+import { analyzePackageCooldown } from "./packageCooldownParser.ts";
+import type { PullRequest, Repository } from "./repository.ts";
+import { analyzeWorkflows } from "./workflowParser.ts";
 
 type OctokitRepo = Awaited<ReturnType<Octokit["rest"]["repos"]["listForAuthenticatedUser"]>>["data"][number];
 

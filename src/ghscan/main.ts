@@ -1,8 +1,8 @@
 import { parseArgs as nodeParseArgs } from "node:util";
-import type { VersionTuple } from "../github/languageVersionFetcher.js";
-import { fetchLatestLanguageVersions } from "../github/languageVersionFetcher.js";
-import type { PullRequest, Repository } from "../github/repository.js";
-import { fetchRepositories } from "../github/repositoryFetcher.js";
+import type { VersionTuple } from "../github/languageVersionFetcher.ts";
+import { fetchLatestLanguageVersions } from "../github/languageVersionFetcher.ts";
+import type { PullRequest, Repository } from "../github/repository.ts";
+import { fetchRepositories } from "../github/repositoryFetcher.ts";
 
 // ── Public API ──────────────────────────────────────────────
 

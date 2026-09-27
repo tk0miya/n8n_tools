@@ -1,6 +1,6 @@
 import type { Octokit } from "@octokit/rest";
 import * as yaml from "js-yaml";
-import { fetchFileContent } from "./content.js";
+import { fetchFileContent } from "./content.ts";
 
 const DEPENDABOT_PATHS = [".github/dependabot.yml", ".github/dependabot.yaml"] as const;
 

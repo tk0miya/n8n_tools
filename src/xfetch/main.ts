@@ -1,8 +1,8 @@
 import { parseArgs as nodeParseArgs } from "node:util";
-import type { AccountState, XfetchState } from "./state.js";
-import { getAccountState, getDefaultStatePath, loadState, STATE_VERSION, saveState } from "./state.js";
-import type { FetchUserPostsOptions, XClientApi, XError, XPost, XUser } from "./xClient.js";
-import { XClient } from "./xClient.js";
+import type { AccountState, XfetchState } from "./state.ts";
+import { getAccountState, getDefaultStatePath, loadState, STATE_VERSION, saveState } from "./state.ts";
+import type { FetchUserPostsOptions, XClientApi, XError, XPost, XUser } from "./xClient.ts";
+import { XClient } from "./xClient.ts";
 
 export interface RunOptions {
   usernames: string[];

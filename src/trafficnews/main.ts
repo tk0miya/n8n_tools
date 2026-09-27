@@ -1,5 +1,5 @@
 import { parseArgs as nodeParseArgs } from "node:util";
-import { getDefaultStatePath, loadState, STATE_VERSION, saveState } from "./state.js";
+import { getDefaultStatePath, loadState, STATE_VERSION, saveState } from "./state.ts";
 
 const TARGET_URL = "https://trafficnews.jp/category/road/page/1";
 export const MAX_SEEN_URLS = 50;

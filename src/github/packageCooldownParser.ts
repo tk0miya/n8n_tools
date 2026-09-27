@@ -1,5 +1,5 @@
 import type { Octokit } from "@octokit/rest";
-import { fetchFileContent } from "./content.js";
+import { fetchFileContent } from "./content.ts";
 
 const PACKAGE_JSON_PATH = "package.json";
 const NPMRC_PATH = ".npmrc";

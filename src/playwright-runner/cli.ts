@@ -1,6 +1,6 @@
 // Sample runner: replace this file with your own script.
 // Runs inside mcr.microsoft.com/playwright container via:
-//   /files/n8n_tools/node_modules/.bin/tsx /files/n8n_tools/src/playwright-runner/cli.ts
+//   node /files/n8n_tools/src/playwright-runner/cli.ts
 import { chromium } from "playwright";
 
 const browser = await chromium.launch();
