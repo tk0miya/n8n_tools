@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RunOutput } from "#amesh/main.js";
 import {
   buildMapUrl,
@@ -74,18 +77,30 @@ describe("buildMeshUrl", () => {
 // ── parseArgs ────────────────────────────────────────────────
 
 describe("parseArgs", () => {
-  it("returns the current time with no arguments, animate defaulting to false", () => {
+  it("returns the current time and the output directory, animate defaulting to false", () => {
     const before = Date.now();
-    const options = parseArgs(["node", "cli.js"]);
+    const options = parseArgs(["node", "cli.js", "-d", "/tmp"]);
     const after = Date.now();
     expect(options.now.getTime()).toBeGreaterThanOrEqual(before);
     expect(options.now.getTime()).toBeLessThanOrEqual(after);
     expect(options.animate).toBe(false);
+    expect(options.outputDir).toBe("/tmp");
   });
 
-  it("sets animate to true when --animate is passed", () => {
-    const options = parseArgs(["node", "cli.js", "--animate"]);
+  it("accepts --output-dir and sets animate to true when --animate is passed", () => {
+    const options = parseArgs(["node", "cli.js", "--output-dir", "/tmp", "--animate"]);
     expect(options.animate).toBe(true);
+    expect(options.outputDir).toBe("/tmp");
+  });
+
+  it("throws a usage error when the output directory is missing", () => {
+    expect(() => parseArgs(["node", "cli.js"])).toThrow("Usage: amesh -d <output-dir> [--animate]");
+    expect(() => parseArgs(["node", "cli.js", "--animate"])).toThrow("Usage: amesh -d <output-dir> [--animate]");
+    expect(() => parseArgs(["node", "cli.js", "-d", ""])).toThrow("Usage: amesh -d <output-dir> [--animate]");
+  });
+
+  it("rejects positional arguments", () => {
+    expect(() => parseArgs(["node", "cli.js", "-d", "/tmp", "amesh.png"])).toThrow();
   });
 });
 
@@ -130,7 +145,19 @@ const ONE_PX_PNG = Buffer.from(
 );
 
 describe("run", () => {
-  it("fetches the three layers, composes them, and prints base64 JSON output", async () => {
+  let baseDir: string;
+
+  beforeEach(async () => {
+    baseDir = await mkdtemp(join(tmpdir(), "amesh-test-"));
+  });
+
+  afterEach(async () => {
+    await rm(baseDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("fetches the three layers, writes <outputDir>/amesh.png, and prints its path as JSON", async () => {
     const requestedUrls: string[] = [];
     vi.stubGlobal(
       "fetch",
@@ -140,25 +167,24 @@ describe("run", () => {
       }),
     );
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    try {
-      const code = await run({ now: new Date("2026-04-11T12:07:30.000Z"), animate: false });
-      expect(code).toBe(0);
-      expect(requestedUrls).toEqual([
-        "https://tokyo-ame.jwa.or.jp/map/map000.jpg",
-        "https://tokyo-ame.jwa.or.jp/mesh/000/202604112100.gif",
-        "https://tokyo-ame.jwa.or.jp/map/msk000.png",
-      ]);
+    const expectedPath = join(baseDir, "amesh.png");
 
-      const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
-      expect(output.timestamp).toBe("202604112100");
-      expect(output.filename).toBe("amesh_202604112100.png");
-      expect(output.content_type).toBe("image/png");
-      expect(typeof output.image_base64).toBe("string");
-      expect(output.image_base64.length).toBeGreaterThan(0);
-    } finally {
-      log.mockRestore();
-      vi.unstubAllGlobals();
-    }
+    const code = await run({ now: new Date("2026-04-11T12:07:30.000Z"), animate: false, outputDir: baseDir });
+    expect(code).toBe(0);
+    expect(requestedUrls).toEqual([
+      "https://tokyo-ame.jwa.or.jp/map/map000.jpg",
+      "https://tokyo-ame.jwa.or.jp/mesh/000/202604112100.gif",
+      "https://tokyo-ame.jwa.or.jp/map/msk000.png",
+    ]);
+
+    const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
+    expect(output).toEqual({
+      timestamp: "202604112100",
+      content_type: "image/png",
+      path: expectedPath,
+    });
+    const written = await readFile(expectedPath);
+    expect(written.subarray(1, 4).toString("ascii")).toBe("PNG");
   });
 
   it("propagates an error when any layer fails to fetch", async () => {
@@ -166,14 +192,12 @@ describe("run", () => {
       "fetch",
       vi.fn(async () => new Response(null, { status: 500, statusText: "Internal Server Error" })),
     );
-    try {
-      await expect(run({ now: new Date(), animate: false })).rejects.toThrow("HTTP 500 Internal Server Error");
-    } finally {
-      vi.unstubAllGlobals();
-    }
+    await expect(run({ now: new Date(), animate: false, outputDir: baseDir })).rejects.toThrow(
+      "HTTP 500 Internal Server Error",
+    );
   });
 
-  it("with animate: true, fetches map/mask once and 24 mesh frames, then prints an animated GIF", async () => {
+  it("with animate: true, fetches map/mask once and 24 mesh frames, then writes <outputDir>/amesh.gif", async () => {
     const requestedUrls: string[] = [];
     vi.stubGlobal(
       "fetch",
@@ -183,25 +207,56 @@ describe("run", () => {
       }),
     );
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    try {
-      const now = new Date("2026-04-11T12:07:30.000Z");
-      const code = await run({ now, animate: true });
-      expect(code).toBe(0);
-      expect(requestedUrls[0]).toBe("https://tokyo-ame.jwa.or.jp/map/map000.jpg");
-      expect(requestedUrls[1]).toBe("https://tokyo-ame.jwa.or.jp/map/msk000.png");
-      expect(requestedUrls).toHaveLength(2 + 24);
-      expect(requestedUrls[requestedUrls.length - 1]).toBe("https://tokyo-ame.jwa.or.jp/mesh/000/202604112100.gif");
+    const expectedPath = join(baseDir, "amesh.gif");
 
-      const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
-      expect(output.timestamp).toBe("202604112100");
-      expect(output.filename).toBe("amesh_202604112100.gif");
-      expect(output.content_type).toBe("image/gif");
-      expect(typeof output.image_base64).toBe("string");
-      expect(output.image_base64.length).toBeGreaterThan(0);
-    } finally {
-      log.mockRestore();
-      vi.unstubAllGlobals();
-    }
+    const code = await run({ now: new Date("2026-04-11T12:07:30.000Z"), animate: true, outputDir: baseDir });
+    expect(code).toBe(0);
+    expect(requestedUrls[0]).toBe("https://tokyo-ame.jwa.or.jp/map/map000.jpg");
+    expect(requestedUrls[1]).toBe("https://tokyo-ame.jwa.or.jp/map/msk000.png");
+    expect(requestedUrls).toHaveLength(2 + 24);
+    expect(requestedUrls[requestedUrls.length - 1]).toBe("https://tokyo-ame.jwa.or.jp/mesh/000/202604112100.gif");
+
+    const output = JSON.parse(log.mock.calls[0]?.[0] as string) as RunOutput;
+    expect(output).toEqual({
+      timestamp: "202604112100",
+      content_type: "image/gif",
+      path: expectedPath,
+    });
+    const written = await readFile(expectedPath);
+    expect(written.subarray(0, 6).toString("ascii")).toBe("GIF89a");
+  });
+
+  it("overwrites an existing file at the output path without leaving a temporary file", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(ONE_PX_PNG, { status: 200 })),
+    );
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const expectedPath = join(baseDir, "amesh.png");
+    await writeFile(expectedPath, "stale");
+
+    await run({ now: new Date("2026-04-11T12:07:30.000Z"), animate: false, outputDir: baseDir });
+
+    const written = await readFile(expectedPath);
+    expect(written.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect(await readdir(baseDir)).toEqual(["amesh.png"]);
+  });
+
+  it("removes the temporary file and rethrows when replacing the output file fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(ONE_PX_PNG, { status: 200 })),
+    );
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    // A directory at the output path lets the temp file be written but makes rename fail.
+    const expectedPath = join(baseDir, "amesh.png");
+    await mkdir(expectedPath);
+
+    await expect(
+      run({ now: new Date("2026-04-11T12:07:30.000Z"), animate: false, outputDir: baseDir }),
+    ).rejects.toThrow();
+    expect(await readdir(baseDir)).toEqual(["amesh.png"]);
+    expect(log).not.toHaveBeenCalled();
   });
 });
 
