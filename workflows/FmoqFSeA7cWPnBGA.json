@@ -1,0 +1,156 @@
+{
+  "updatedAt": "2026-09-27T06:08:24.858Z",
+  "createdAt": "2026-09-21T12:05:16.490Z",
+  "id": "FmoqFSeA7cWPnBGA",
+  "name": "amesh",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "amesh",
+        "options": {
+          "noResponseBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d6849971-ab04-41ad-85a9-d5b994cbccc1",
+      "name": "/amesh on Slack",
+      "webhookId": "c5e748ee-883b-4077-b202-129576e5d3d5"
+    },
+    {
+      "parameters": {
+        "command": "=cd /files/n8n_tools\nmkdir -p /home/node/.n8n-files\nnpx tsx src/amesh/cli.ts -d /home/node/.n8n-files {{ $json.body.text !== \"\" ? \"--animate\" : \"\" }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "edc7c70f-5af9-4ef9-a91a-2dfa41530ff8",
+      "name": "Generate amesh image"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "options": {
+          "channelId": "={{ $('/amesh on Slack').item.json.body.channel_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "a89ab85c-743d-4f94-9ae4-65c06e796400",
+      "name": "Slack に投稿",
+      "webhookId": "84ba2d5f-a5d9-4f47-8c86-842de3f6ca77",
+      "credentials": {
+        "slackApi": {
+          "id": "u023lHhO0RxPltWG",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ JSON.parse($json.stdout).path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "a0dda215-22e4-4075-860b-fed1ec16720f",
+      "name": "Read/Write Files from Disk"
+    }
+  ],
+  "connections": {
+    "/amesh on Slack": {
+      "main": [
+        [
+          {
+            "node": "Generate amesh image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate amesh image": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack に投稿": {
+      "main": [
+        []
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Slack に投稿",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "b5e457c7-81ac-4199-9b5d-d3c5bd4716cd",
+  "activeVersionId": "b5e457c7-81ac-4199-9b5d-d3c5bd4716cd",
+  "versionCounter": 168,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-21T12:05:16.510Z",
+      "createdAt": "2026-09-21T12:05:16.510Z",
+      "role": "workflow:owner",
+      "workflowId": "FmoqFSeA7cWPnBGA",
+      "projectId": "yHsQmZORZPbcy5z9",
+      "project": {
+        "updatedAt": "2026-03-18T11:12:41.262Z",
+        "createdAt": "2026-03-16T17:57:23.506Z",
+        "id": "yHsQmZORZPbcy5z9",
+        "name": "Takeshi KOMIYA <i.tkomiya@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "1c19844f-d045-4284-87f7-cece9750f135"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": "Version b5e457c7",
+    "description": ""
+  }
+}

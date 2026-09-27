@@ -195,7 +195,7 @@
   },
   "staticData": {
     "global": {
-      "lastWashedAt": 1788307200
+      "lastWashedAt": 1789689600
     },
     "node:Schedule Trigger": {
       "recurrenceRules": []
@@ -207,7 +207,7 @@
   "pinData": {},
   "versionId": "24ae0143-c9fc-4fbd-8b3c-5cbe4c031123",
   "activeVersionId": "24ae0143-c9fc-4fbd-8b3c-5cbe4c031123",
-  "versionCounter": 154,
+  "versionCounter": 156,
   "triggerCount": 2,
   "tags": [],
   "shared": [
