@@ -1,3 +1,4 @@
+import { parseArgs as nodeParseArgs } from "node:util";
 import { fetchTokenExpiry } from "../github/tokenExpiry.ts";
 
 // ── Public API ──────────────────────────────────────────────
@@ -7,8 +8,26 @@ export interface CheckTokenResult {
   daysUntilExpiry: number | null;
 }
 
-export async function run(): Promise<void> {
-  const token = requireToken();
+export interface RunOptions {
+  tokenEnvName: string;
+}
+
+export function parseArgs(argv: string[]): RunOptions {
+  const { positionals } = nodeParseArgs({
+    args: argv.slice(2),
+    options: {},
+    allowPositionals: true,
+  });
+
+  if (positionals.length !== 1) {
+    throw new Error("Usage: ghtoken <token environment variable name>");
+  }
+
+  return { tokenEnvName: positionals[0] };
+}
+
+export async function run({ tokenEnvName }: RunOptions): Promise<void> {
+  const token = requireToken(tokenEnvName);
   const { Octokit } = await import("@octokit/rest");
   const client = new Octokit({
     auth: token,
@@ -45,10 +64,10 @@ export function computeDaysUntilExpiry(expiration: Date, now: Date = new Date())
 
 // ── Token handling ──────────────────────────────────────────
 
-function requireToken(): string {
-  const token = process.env.GITHUB_TOKEN;
+function requireToken(name: string): string {
+  const token = process.env[name];
   if (!token) {
-    console.error("Error: GITHUB_TOKEN environment variable is not set");
+    console.error(`Error: ${name} environment variable is not set`);
     process.exit(1);
   }
   return token;

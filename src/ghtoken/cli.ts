@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { run } from "./main.ts";
+import { parseArgs, run } from "./main.ts";
 
-run().catch((error) => {
+run(parseArgs(process.argv)).catch((error) => {
   console.error(error);
   process.exit(1);
 });

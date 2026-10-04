@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { computeDaysUntilExpiry, toCheckTokenResult } from "#ghtoken/main.ts";
+import { computeDaysUntilExpiry, parseArgs, toCheckTokenResult } from "#ghtoken/main.ts";
+
+// ── parseArgs ─────────────────────────────────────────────
+
+describe("parseArgs", () => {
+  it("throws when no name is given", () => {
+    expect(() => parseArgs(["node", "cli.ts"])).toThrow(/Usage/);
+  });
+
+  it("accepts the name of the token environment variable", () => {
+    expect(parseArgs(["node", "cli.ts", "GHMERGE_GITHUB_TOKEN"])).toEqual({ tokenEnvName: "GHMERGE_GITHUB_TOKEN" });
+  });
+
+  it("throws when more than one name is given", () => {
+    expect(() => parseArgs(["node", "cli.ts", "GHSCAN_GITHUB_TOKEN", "GHMERGE_GITHUB_TOKEN"])).toThrow(/Usage/);
+  });
+});
 
 // ── toCheckTokenResult ────────────────────────────────────
 

@@ -82,9 +82,9 @@ export async function run({ repos }: RunOptions): Promise<void> {
 // ── Token handling ──────────────────────────────────────────
 
 function requireToken(): string {
-  const token = process.env.GITHUB_TOKEN;
+  const token = process.env.GHMERGE_GITHUB_TOKEN;
   if (!token) {
-    console.error("Error: GITHUB_TOKEN environment variable is not set");
+    console.error("Error: GHMERGE_GITHUB_TOKEN environment variable is not set");
     process.exit(1);
   }
   return token;
