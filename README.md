@@ -14,7 +14,8 @@ cp .env.example .env
 
 | 変数名 | 説明 |
 |---|---|
-| `GITHUB_TOKEN` | GitHub API トークン |
+| `GHSCAN_GITHUB_TOKEN` | ghscan 用の GitHub API トークン。有効期限は `ghtoken GHSCAN_GITHUB_TOKEN` でチェックできる |
+| `GHMERGE_GITHUB_TOKEN` | ghmerge 用の GitHub API トークン (Contents・Pull requests の書き込み権限が必要)。有効期限は `ghtoken GHMERGE_GITHUB_TOKEN` でチェックできる |
 | `GHOME_IP` | Google Home デバイスの IP アドレス |
 | `X_BEARER_TOKEN` | X (Twitter) API Bearer トークン |
 | `XFETCH_STATE_FILE` | xfetch のステートファイルパス |
