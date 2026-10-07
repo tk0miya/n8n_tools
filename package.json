@@ -18,7 +18,7 @@
     "castv2-client": "^1.2.0",
     "dotenv": "^18.0.3",
     "js-yaml": "^5.4.2",
-    "sharp": "^0.35.4"
+    "sharp": "^0.35.5"
   },
   "overrides": {
     "protobufjs": "^7.6.6"
