@@ -2,7 +2,7 @@ import { parseArgs as nodeParseArgs } from "node:util";
 import type { MergeCandidate } from "../github/pullRequestMerger.ts";
 import { mergePullRequest, searchPullRequests } from "../github/pullRequestMerger.ts";
 
-const LABEL = "auto-label";
+const LABEL = "auto-merge";
 const REPO_PATTERN = /^[\w.-]+\/[\w.-]+$/;
 
 // ── Public API ──────────────────────────────────────────────
