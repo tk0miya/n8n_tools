@@ -45,7 +45,7 @@ describe("parseArgs", () => {
 describe("buildSearchQuery", () => {
   it("builds a query covering all repositories", () => {
     expect(buildSearchQuery(["testuser/a", "testuser/b"])).toBe(
-      "is:pr is:open label:auto-label repo:testuser/a repo:testuser/b",
+      "is:pr is:open label:auto-merge repo:testuser/a repo:testuser/b",
     );
   });
 });
