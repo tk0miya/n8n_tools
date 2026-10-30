@@ -73,6 +73,20 @@ describe("analyzeWorkflowFiles", () => {
     });
   });
 
+  describe("noActionsLock", () => {
+    it("returns false when no workflow files exist", () => {
+      expect(analyzeWorkflowFiles([]).noActionsLock).toBe(false);
+    });
+
+    it("returns false when actions.lock exists", () => {
+      expect(analyzeWorkflowFiles(["name: CI"], true).noActionsLock).toBe(false);
+    });
+
+    it("returns true when workflows exist without actions.lock", () => {
+      expect(analyzeWorkflowFiles(["name: CI"], false).noActionsLock).toBe(true);
+    });
+  });
+
   describe("languageVersions", () => {
     it("returns an empty object when no workflow files exist", () => {
       expect(analyzeWorkflowFiles([]).languageVersions).toEqual({});
@@ -199,36 +213,36 @@ describe("fetchWorkflowFiles", () => {
     return { rest: { repos: { getContent } } } as never;
   }
 
-  it("returns empty array when .github/workflows/ does not exist (404)", async () => {
+  it("returns no files when .github/workflows/ does not exist (404)", async () => {
     const getContent = vi
       .fn()
       .mockRejectedValue(new RequestError("Not Found", 404, { request: { method: "GET", url: "", headers: {} } }));
-    const files = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
-    expect(files).toEqual([]);
+    const result = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
+    expect(result).toEqual({ files: [], hasActionsLock: false });
   });
 
-  it("returns empty array when access is forbidden (403)", async () => {
+  it("returns no files when access is forbidden (403)", async () => {
     const getContent = vi.fn().mockRejectedValue(
       new RequestError("Resource not accessible by personal access token", 403, {
         request: { method: "GET", url: "", headers: {} },
       }),
     );
-    const files = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
-    expect(files).toEqual([]);
+    const result = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
+    expect(result).toEqual({ files: [], hasActionsLock: false });
   });
 
-  it("returns empty array when directory is empty", async () => {
+  it("returns no files when directory is empty", async () => {
     const getContent = vi.fn().mockResolvedValue({ data: [] });
-    const files = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
-    expect(files).toEqual([]);
+    const result = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
+    expect(result).toEqual({ files: [], hasActionsLock: false });
   });
 
   it("skips non-yml files", async () => {
     const getContent = vi.fn().mockResolvedValue({
       data: [{ name: "README.md", path: ".github/workflows/README.md" }],
     });
-    const files = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
-    expect(files).toEqual([]);
+    const result = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
+    expect(result).toEqual({ files: [], hasActionsLock: false });
     expect(getContent).toHaveBeenCalledTimes(1);
   });
 
@@ -240,7 +254,16 @@ describe("fetchWorkflowFiles", () => {
       }
       return { data: { content: encode(content) } };
     });
-    const files = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
-    expect(files).toEqual([content]);
+    const result = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
+    expect(result).toEqual({ files: [content], hasActionsLock: false });
+  });
+
+  it("detects actions.lock in the workflows directory", async () => {
+    const getContent = vi.fn().mockResolvedValue({
+      data: [{ name: "actions.lock", path: ".github/workflows/actions.lock" }],
+    });
+    const result = await fetchWorkflowFiles(buildClient(getContent), "testuser/repo1");
+    expect(result).toEqual({ files: [], hasActionsLock: true });
+    expect(getContent).toHaveBeenCalledTimes(1);
   });
 });

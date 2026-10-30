@@ -18,6 +18,7 @@ function repo(overrides: Partial<Repository> = {}): Repository {
     pullRequests: [],
     languageVersions: {},
     noActionlint: false,
+    noActionsLock: false,
     noDependabot: false,
     noDependabotCooldown: false,
     noPackageCooldown: false,
@@ -32,6 +33,7 @@ function scanResult(overrides: Partial<ScanResult> = {}): ScanResult {
     pullRequests: [],
     outdatedLanguages: [],
     noActionlint: false,
+    noActionsLock: false,
     noDependabot: false,
     noDependabotCooldown: false,
     noPackageCooldown: false,
@@ -55,6 +57,7 @@ describe("toScanResult", () => {
       pullRequests: [],
       outdatedLanguages: ["ruby"],
       noActionlint: false,
+      noActionsLock: false,
       noDependabot: false,
       noDependabotCooldown: false,
       noPackageCooldown: false,
@@ -100,6 +103,11 @@ describe("filterScanResults", () => {
   it("includes a result missing actionlint", () => {
     const results = [scanResult({ name: "no-actionlint", noActionlint: true })];
     expect(filterScanResults(results).map((r) => r.name)).toEqual(["no-actionlint"]);
+  });
+
+  it("includes a result missing actions.lock", () => {
+    const results = [scanResult({ name: "no-actions-lock", noActionsLock: true })];
+    expect(filterScanResults(results).map((r) => r.name)).toEqual(["no-actions-lock"]);
   });
 
   it("excludes a result running actionlint with no other flags", () => {

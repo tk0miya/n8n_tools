@@ -64,6 +64,7 @@ async function buildRepository(
     pullRequests,
     languageVersions: workflows.languageVersions,
     noActionlint: workflows.noActionlint,
+    noActionsLock: workflows.noActionsLock,
     noDependabot: dependabot.noDependabot,
     noDependabotCooldown: dependabot.noDependabotCooldown,
     noPackageCooldown: packageCooldown.noPackageCooldown,

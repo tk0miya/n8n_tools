@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { fetchRepositories, isActiveRepo } from "#github/repositoryFetcher.ts";
 
 vi.mock("#github/workflowParser.ts", () => ({
-  analyzeWorkflows: vi.fn().mockResolvedValue({ hasWorkflows: true, languageVersions: {}, noActionlint: false }),
+  analyzeWorkflows: vi
+    .fn()
+    .mockResolvedValue({ hasWorkflows: true, languageVersions: {}, noActionlint: false, noActionsLock: false }),
 }));
 vi.mock("#github/dependabotParser.ts", () => ({
   analyzeDependabot: vi.fn().mockResolvedValue({ noDependabot: false, noDependabotCooldown: false }),
@@ -97,6 +99,7 @@ describe("fetchRepositories", () => {
       ],
       languageVersions: {},
       noActionlint: false,
+      noActionsLock: false,
       noDependabot: false,
       noDependabotCooldown: false,
       noPackageCooldown: false,
@@ -131,6 +134,7 @@ describe("fetchRepositories", () => {
       hasWorkflows: true,
       languageVersions: { ruby: ["3.1", "3.2"] },
       noActionlint: false,
+      noActionsLock: false,
     });
 
     const repos = [fakeRepo({ name: "repo1" })];
@@ -145,6 +149,7 @@ describe("fetchRepositories", () => {
       hasWorkflows: false,
       languageVersions: {},
       noActionlint: false,
+      noActionsLock: false,
     });
     vi.mocked(analyzeDependabot).mockClear();
 
