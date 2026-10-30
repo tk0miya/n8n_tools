@@ -11,26 +11,35 @@ const LANGUAGE_KEYS = {
 
 const MATRIX_REF_PATTERN = /^\$\{\{\s*matrix\.([\w-]+)\s*\}\}$/;
 
+const ACTIONS_LOCK_FILENAME = "actions.lock";
+
 export interface WorkflowAnalysis {
   hasWorkflows: boolean;
   languageVersions: Record<string, string[]>;
   noActionlint: boolean;
+  noActionsLock: boolean;
+}
+
+export interface WorkflowDirectory {
+  files: string[];
+  hasActionsLock: boolean;
 }
 
 export async function analyzeWorkflows(client: Octokit, repoFullName: string): Promise<WorkflowAnalysis> {
-  const files = await fetchWorkflowFiles(client, repoFullName);
-  return analyzeWorkflowFiles(files);
+  const { files, hasActionsLock } = await fetchWorkflowFiles(client, repoFullName);
+  return analyzeWorkflowFiles(files, hasActionsLock);
 }
 
-export function analyzeWorkflowFiles(files: string[]): WorkflowAnalysis {
+export function analyzeWorkflowFiles(files: string[], hasActionsLock = false): WorkflowAnalysis {
   return {
     hasWorkflows: files.length > 0,
     languageVersions: extractAllLanguageVersions(files),
     noActionlint: files.length > 0 && files.every((f) => !/\bactionlint\b/.test(f)),
+    noActionsLock: files.length > 0 && !hasActionsLock,
   };
 }
 
-export async function fetchWorkflowFiles(client: Octokit, repoFullName: string): Promise<string[]> {
+export async function fetchWorkflowFiles(client: Octokit, repoFullName: string): Promise<WorkflowDirectory> {
   try {
     const [owner, repo] = repoFullName.split("/");
     const { data: entries } = await client.rest.repos.getContent({
@@ -40,9 +49,10 @@ export async function fetchWorkflowFiles(client: Octokit, repoFullName: string):
     });
 
     if (!Array.isArray(entries)) {
-      return [];
+      return { files: [], hasActionsLock: false };
     }
 
+    const hasActionsLock = entries.some((entry) => entry.name === ACTIONS_LOCK_FILENAME);
     const results: string[] = [];
     for (const entry of entries) {
       if (!entry.name.endsWith(".yml") && !entry.name.endsWith(".yaml")) {
@@ -53,10 +63,10 @@ export async function fetchWorkflowFiles(client: Octokit, repoFullName: string):
         results.push(content);
       }
     }
-    return results;
+    return { files: results, hasActionsLock };
   } catch (error: unknown) {
     if (error instanceof RequestError && (error.status === 403 || error.status === 404)) {
-      return [];
+      return { files: [], hasActionsLock: false };
     }
     throw error;
   }

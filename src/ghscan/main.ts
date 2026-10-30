@@ -12,6 +12,7 @@ export interface ScanResult {
   pullRequests: PullRequest[];
   outdatedLanguages: string[];
   noActionlint: boolean;
+  noActionsLock: boolean;
   noDependabot: boolean;
   noDependabotCooldown: boolean;
   noPackageCooldown: boolean;
@@ -81,6 +82,7 @@ export function toScanResult(repo: Repository, latestVersions: ReadonlyMap<strin
     pullRequests: repo.pullRequests,
     outdatedLanguages: detectOutdatedLanguages(repo, latestVersions),
     noActionlint: repo.noActionlint,
+    noActionsLock: repo.noActionsLock,
     noDependabot: repo.noDependabot,
     noDependabotCooldown: repo.noDependabotCooldown,
     noPackageCooldown: repo.noPackageCooldown,
@@ -95,6 +97,7 @@ export function filterScanResults(results: readonly ScanResult[]): ScanResult[] 
       result.pullRequests.length >= 1 ||
       result.outdatedLanguages.length > 0 ||
       result.noActionlint ||
+      result.noActionsLock ||
       result.noDependabot ||
       result.noDependabotCooldown ||
       result.noPackageCooldown,
