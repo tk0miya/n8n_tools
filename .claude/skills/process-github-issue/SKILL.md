@@ -1,4 +1,5 @@
 ---
+
 name: process-github-issue
 description: GitHub Issues のタスクを自動処理するスキル。「イシューを処理して」「次の issue をやって」「GitHub の issue を対応して」といったリクエストで使用する。
 ---
@@ -21,7 +22,7 @@ GitHub Issues のオープンなイシューを自動選択し、すべての作
 
 Agent ツールでサブエージェントを起動し、以下の指示をそのまま渡す:
 
-```
+````
 以下のワークフローに従って GitHub Issue を1件処理してください。
 
 ## Step 1: イシューの取得
@@ -66,7 +67,7 @@ worktree 内（.claude/worktrees/issue-<number>）で作業する。
 
 worktree 内での git 操作は `git -C` オプションを使用し、`cd` を使わずに行うこと:
 
-```
+```bash
 # 良い例: git -C でパスを指定
 git -C .claude/worktrees/issue-<number> add <file>
 git -C .claude/worktrees/issue-<number> commit -m "..."
@@ -109,4 +110,4 @@ git worktree remove .claude/worktrees/issue-<number>
 2. worktree が作成済みなら削除: git worktree remove --force .claude/worktrees/issue-<number>
 3. ブランチが作成済みでも削除しない
 4. エラー内容と残存状態を報告する
-```
+````
