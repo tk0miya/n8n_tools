@@ -12,15 +12,15 @@ n8n で使用するカスタムツール群です。
 cp .env.example .env
 ```
 
-| 変数名 | 説明 |
-|---|---|
-| `GHSCAN_GITHUB_TOKEN` | ghscan 用の GitHub API トークン。有効期限は `ghtoken GHSCAN_GITHUB_TOKEN` でチェックできる |
-| `GHMERGE_GITHUB_TOKEN` | ghmerge 用の GitHub API トークン (Contents・Pull requests の書き込み権限が必要)。有効期限は `ghtoken GHMERGE_GITHUB_TOKEN` でチェックできる |
-| `GHOME_IP` | Google Home デバイスの IP アドレス |
-| `X_BEARER_TOKEN` | X (Twitter) API Bearer トークン |
-| `XFETCH_STATE_FILE` | xfetch のステートファイルパス |
-| `TRAFFICNEWS_STATE_FILE` | trafficnews のステートファイルパス |
-| `MICHINOEKI_STATE_FILE` | michinoeki のステートファイルパス |
+| 変数名                   | 説明                                                                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GHSCAN_GITHUB_TOKEN`    | ghscan 用の GitHub API トークン。有効期限は `ghtoken GHSCAN_GITHUB_TOKEN` でチェックできる                                                  |
+| `GHMERGE_GITHUB_TOKEN`   | ghmerge 用の GitHub API トークン (Contents・Pull requests の書き込み権限が必要)。有効期限は `ghtoken GHMERGE_GITHUB_TOKEN` でチェックできる |
+| `GHOME_IP`               | Google Home デバイスの IP アドレス                                                                                                          |
+| `X_BEARER_TOKEN`         | X (Twitter) API Bearer トークン                                                                                                             |
+| `XFETCH_STATE_FILE`      | xfetch のステートファイルパス                                                                                                               |
+| `TRAFFICNEWS_STATE_FILE` | trafficnews のステートファイルパス                                                                                                          |
+| `MICHINOEKI_STATE_FILE`  | michinoeki のステートファイルパス                                                                                                           |
 
 ### Synology NAS + Docker + n8n での動作
 
@@ -56,10 +56,10 @@ n8n (HTTP Request ノード)
 
 ### コンポーネント
 
-| ファイル | 実行環境 | 役割 |
-|---|---|---|
-| `orchestrator/cgi-bin/run.sh` | orchestrator コンテナ (busybox httpd CGI) | HTTP リクエストを受け取り、`docker run` で playwright コンテナを起動する |
-| `src/playwright-runner/cli.ts` | playwright コンテナ (オンデマンド) | 実行したいスクリプトを TypeScript で記述する。結果を JSON で stdout に出力する |
+| ファイル                       | 実行環境                                  | 役割                                                                           |
+| ------------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------ |
+| `orchestrator/cgi-bin/run.sh`  | orchestrator コンテナ (busybox httpd CGI) | HTTP リクエストを受け取り、`docker run` で playwright コンテナを起動する       |
+| `src/playwright-runner/cli.ts` | playwright コンテナ (オンデマンド)        | 実行したいスクリプトを TypeScript で記述する。結果を JSON で stdout に出力する |
 
 ### 設計上の判断
 
